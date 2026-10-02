@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>揪甘心 · 15s</title>
+<!-- 揪甘心 15 s — concept B: one take. A laptop where the host builds the event, a link that flies out of it, four
+     phones that vote, and the votes gathering into one ranking that folds into the wordmark. Every value is f(t).
+     Palette: the product's own tokens (src/design-system/tokens/colors.css). Content: the demo-gathering seed in
+     src/lib/localEventStore.ts (title, slots, the four participants and their real answers). -->
+<style>
+:root{
+  --primary:#e06828; --primary-dark:#C2551A; --primary-subtle:#FDF1E9; --secondary:#ffd900;
+  --ink:#1A0C04; --ink60:rgba(26,12,4,.6); --ink30:rgba(26,12,4,.3); --ink10:rgba(26,12,4,.1);
+  --cream:#FFF8ED; --muted:#9B8870; --border:#F0E8D8; --border-strong:#D9CCBA; --surface:#fff;
+  --success:#5A9E5A; --success-subtle:#EDF6ED; --warning:#F59E0B; --weekend:#A1493B; --hot:#D6303C; --hot-subtle:#FCE9EA;
+  --font:-apple-system,'PingFang TC','Heiti TC','Noto Sans TC',sans-serif;
+}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--cream)}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:absolute;inset:0;overflow:hidden;background:var(--cream)}
+#ground{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#world{position:absolute;left:0;top:0;width:10px;height:10px;transform-origin:0 0}
+.a{position:absolute;box-sizing:border-box}
+
+/* ── laptop ── */
+#lid{left:96px;top:146px;width:1008px;height:648px;border-radius:30px;background:#2b211b;box-shadow:0 40px 90px -40px rgba(26,12,4,.45)}
+#scr{left:120px;top:170px;width:960px;height:600px;overflow:hidden;background:var(--cream);border-radius:4px}
+#base{left:30px;top:792px;width:1140px;height:30px;border-radius:4px 4px 26px 26px;background:linear-gradient(#e7ddd0,#c9bba9)}
+#base i{position:absolute;left:500px;top:0;width:140px;height:10px;border-radius:0 0 10px 10px;background:#b8a995}
+.app{position:absolute;left:0;top:0;width:1280px;height:800px;transform:scale(.75);transform-origin:0 0;background:var(--cream)}
+.hdr{left:0;top:0;width:1280px;height:64px;background:var(--primary);color:#fff}
+.logo{position:absolute;width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center}
+.hdr .logo{left:24px;top:12px}
+.hdr .nm{position:absolute;left:76px;top:9px;font-size:23px;font-weight:800;letter-spacing:.02em}
+.hdr .sb{position:absolute;left:77px;top:38px;font-size:12px;opacity:.9}
+.hdr .av{position:absolute;right:24px;top:14px;width:36px;height:36px;border-radius:50%;background:#fff;color:var(--primary);font-weight:800;font-size:17px;line-height:36px;text-align:center}
+.cardL{left:40px;top:88px;width:760px;height:690px;background:#fff;border:1.5px solid var(--border);border-radius:18px}
+.lab{position:absolute;font-size:17px;font-weight:700;color:var(--ink)}
+.lab b{color:var(--hot)}
+.inp{position:absolute;height:52px;border:1.5px solid var(--border-strong);border-radius:12px;background:#fff;font-size:21px;line-height:49px;padding-left:18px;box-sizing:border-box;white-space:nowrap;overflow:hidden}
+.inp .ph{color:#c7b9a6}
+.inp i{display:inline-block;width:2px;height:24px;background:var(--primary);vertical-align:-4px;margin-left:1px}
+.mon{position:absolute;left:24px;width:712px;top:200px;height:32px;font-size:19px;font-weight:800;text-align:center;line-height:32px}
+.mon span{position:absolute;top:0;width:32px;height:32px;border:1.5px solid var(--border);border-radius:8px;line-height:28px;font-weight:600;color:var(--ink60)}
+.wk{position:absolute;top:244px;width:101.7px;text-align:center;font-size:15px;color:var(--muted)}
+.cell{position:absolute;width:86px;height:52px;border-radius:12px;font-size:21px;font-weight:600;text-align:center;line-height:52px;color:var(--ink)}
+.cell.we{color:var(--weekend)}
+.cell.past{color:#d3c7b6}
+.cell.on{background:var(--primary);color:#fff}
+.cardR{left:832px;top:88px;width:408px;height:690px;background:var(--primary-subtle);border:1.5px solid #f6d6c1;border-radius:18px}
+.chk{position:absolute;left:22px;top:22px;width:26px;height:26px;border-radius:7px;background:var(--primary)}
+.chk:after{content:"";position:absolute;left:9px;top:4px;width:6px;height:12px;border-right:3px solid #fff;border-bottom:3px solid #fff;transform:rotate(45deg)}
+.rtitle{position:absolute;left:24px;top:68px;width:360px;font-size:22px;font-weight:800;white-space:nowrap;overflow:hidden}
+.dl{position:absolute;left:24px;top:112px;width:360px;height:40px;border-radius:10px;background:var(--hot-subtle);color:var(--hot);font-size:14px;font-weight:700;line-height:40px;padding-left:14px;box-sizing:border-box}
+.dl b{position:absolute;right:14px;font-weight:800}
+.nsel{position:absolute;left:24px;top:172px;font-size:17px;font-weight:700;color:var(--primary)}
+.drow{position:absolute;left:24px;width:360px;height:46px;border-radius:10px;background:#fff;font-size:18px;font-weight:700;line-height:46px;padding-left:16px;box-sizing:border-box;transform-origin:50% 50%}
+.drow em{font-style:normal;color:var(--muted);font-weight:500;margin-left:8px}
+.go{position:absolute;left:24px;top:612px;width:360px;height:56px;border-radius:28px;font-size:21px;font-weight:800;color:#fff;text-align:center;line-height:56px;transform-origin:50% 50%}
+
+/* ── phones ── */
+.phone{position:absolute;width:375px;height:812px;transform-origin:0 0}
+.phone .fr{position:absolute;left:-12px;top:-12px;width:399px;height:836px;border-radius:62px;background:#2b211b;box-shadow:0 46px 90px -40px rgba(26,12,4,.5)}
+.phone .sc{position:absolute;left:0;top:0;width:375px;height:812px;border-radius:50px;overflow:hidden;background:#211611}
+.phone .off{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,#3a2a20,#1d130e)}
+.phone .off .clk{position:absolute;left:0;right:0;top:118px;text-align:center;color:#fff;font-size:78px;font-weight:300;letter-spacing:.02em}
+.phone .off .dt{position:absolute;left:0;right:0;top:94px;text-align:center;color:rgba(255,255,255,.75);font-size:17px;font-weight:600}
+.phone .island{position:absolute;left:131px;top:11px;width:113px;height:32px;border-radius:16px;background:#000}
+.pv{position:absolute;inset:0;background:var(--cream)}
+.pv .tb{position:absolute;left:0;top:0;width:375px;height:104px;background:var(--primary)}
+.pv .tb .t{position:absolute;left:20px;top:58px;color:#fff;font-size:19px;font-weight:800;white-space:nowrap}
+.pv .info{position:absolute;left:14px;top:116px;width:347px;height:96px;background:#fff;border:1.5px solid var(--border);border-radius:16px}
+.pv .info .t{position:absolute;left:16px;top:13px;font-size:17px;font-weight:800;white-space:nowrap}
+.pv .info .badge{position:absolute;right:14px;top:14px;font-size:11px;font-weight:800;color:#fff;background:var(--success);border-radius:9px;padding:2px 7px}
+.pv .info .d{position:absolute;left:12px;top:48px;width:321px;height:34px;border-radius:9px;background:var(--hot-subtle);color:var(--hot);font-size:13px;font-weight:700;line-height:34px;padding-left:10px;box-sizing:border-box}
+.pv .info .d b{position:absolute;right:10px}
+.pv h5{position:absolute;left:18px;top:226px;margin:0;font-size:20px;font-weight:900}
+.pv .nl{position:absolute;left:18px;top:262px;font-size:14px;font-weight:700}
+.pv .nm{position:absolute;left:14px;top:286px;width:347px;height:46px;border:1.5px solid var(--border-strong);border-radius:12px;background:#fff;font-size:18px;font-weight:700;line-height:43px;padding-left:14px;box-sizing:border-box}
+.pv .dh{position:absolute;left:18px;font-size:15px;font-weight:800;color:var(--ink)}
+.pv .row{position:absolute;left:14px;width:347px;height:62px;background:#fff;border:1.5px solid var(--border);border-radius:14px}
+.pv .row .tm{position:absolute;left:14px;top:8px;font-size:20px;font-weight:800}
+.pv .row .lb{position:absolute;left:14px;top:35px;font-size:13px;color:var(--muted);font-weight:600}
+.vb{position:absolute;top:10px;width:42px;height:42px;border-radius:50%;border:2px solid var(--border-strong);background:#fff;box-sizing:border-box;transform-origin:50% 50%}
+.vb svg{position:absolute;left:9px;top:9px;width:20px;height:20px}
+.pv .sub{position:absolute;left:14px;top:730px;width:347px;height:56px;border-radius:28px;background:var(--primary);color:#fff;font-size:19px;font-weight:800;text-align:center;line-height:56px;transform-origin:50% 50%}
+.pv .cm{position:absolute;left:14px;top:622px;width:347px;height:64px;border:1.5px solid var(--border);border-radius:12px;background:#fff;color:#c7b9a6;font-size:14px;padding:12px 14px;box-sizing:border-box}
+.finger{position:absolute;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(26,12,4,.16);border:2.5px solid rgba(255,255,255,.95);box-shadow:0 4px 14px rgba(26,12,4,.25);box-sizing:border-box}
+.ripple{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:3px solid var(--primary);box-sizing:border-box}
+
+/* ── link pill ── */
+.pill{position:absolute;left:0;top:0;width:560px;height:84px;border-radius:42px;background:var(--primary);color:#fff;font-size:27px;font-weight:800;line-height:84px;white-space:nowrap;overflow:hidden;transform-origin:50% 50%;box-shadow:0 22px 44px -18px rgba(194,85,26,.6)}
+.pill .ic{position:absolute;left:22px;top:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22)}
+.pill .ic svg{position:absolute;left:10px;top:10px;width:24px;height:24px}
+.pill .tx{position:absolute;left:82px;top:0}
+
+/* ── ranking card ── */
+#card{left:0;top:0;width:900px;height:560px;background:#fff;border:1.5px solid var(--border);border-radius:30px;box-shadow:0 50px 110px -40px rgba(26,12,4,.38);transform-origin:0 0;overflow:hidden}
+#card .in{position:absolute;inset:0}
+#card h3{position:absolute;left:44px;top:34px;margin:0;font-size:32px;font-weight:900}
+#card .cnt{position:absolute;right:44px;top:42px;font-size:22px;font-weight:700;color:var(--muted)}
+.rk{position:absolute;left:30px;width:840px;height:136px;border-radius:20px}
+.rk .no{position:absolute;left:14px;top:20px;width:40px;height:40px;border-radius:50%;background:var(--ink);color:#fff;font-size:21px;font-weight:900;text-align:center;line-height:40px}
+.rk .dt{position:absolute;left:70px;top:16px;font-size:30px;font-weight:900;white-space:nowrap}
+.rk .lb{position:absolute;left:72px;top:58px;font-size:19px;color:var(--muted);font-weight:600}
+.rk .ct{position:absolute;right:16px;top:24px;font-size:24px;font-weight:800;white-space:nowrap}
+.rk .ct span{margin-left:18px}
+.rk .bar{position:absolute;left:14px;top:96px;width:812px;height:20px;border-radius:10px;background:var(--border);overflow:hidden}
+.rk .seg{position:absolute;top:0;height:20px;width:203px;transform-origin:0 50%}
+.rk .best{position:absolute;right:16px;top:-16px;height:32px;border-radius:16px;background:var(--primary);color:#fff;font-size:17px;font-weight:800;line-height:32px;padding:0 14px;transform-origin:100% 100%}
+#glow{position:absolute;left:0;top:0;border-radius:22px;border:4px solid var(--primary);box-shadow:0 0 0 8px rgba(224,104,40,.14),0 0 40px rgba(224,104,40,.35);box-sizing:border-box;pointer-events:none}
+.dot{position:absolute;left:0;top:0;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;box-shadow:0 8px 18px -6px rgba(26,12,4,.4)}
+.dot svg{position:absolute;left:10px;top:10px;width:20px;height:20px}
+
+/* ── lockup ── */
+#badge{left:0;top:0;border-radius:38px;background:var(--primary);overflow:hidden;transform-origin:0 0}
+#badge svg{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px}
+#mark{left:2090px;top:442px;font-size:150px;font-weight:900;line-height:160px;letter-spacing:.04em;white-space:nowrap;color:var(--ink)}
+#mark span{display:inline-block;transform-origin:50% 90%}
+#tag{left:0;top:640px;width:4440px;text-align:center;font-size:40px;font-weight:700;color:var(--ink60);letter-spacing:.08em;white-space:nowrap}
+#tag span{display:inline-block}
+#tag i{font-style:normal;color:var(--primary);margin:0 .35em}
+
+/* ── screen space ── */
+#cursor{position:absolute;left:0;top:0;width:34px;height:44px;filter:drop-shadow(0 3px 6px rgba(26,12,4,.35))}
+#cap{position:absolute;left:72px;top:912px;height:126px;width:560px;overflow:hidden;border-radius:24px;background:rgba(255,248,237,.94);box-shadow:0 18px 40px -22px rgba(26,12,4,.35)}
+#cap .row{position:absolute;left:28px;top:14px;white-space:nowrap}
+#cap .n{display:inline-block;width:64px;font-size:28px;font-weight:900;color:var(--primary);vertical-align:6px;font-variant-numeric:tabular-nums}
+#cap .w{font-size:52px;font-weight:900;color:var(--ink);letter-spacing:.04em}
+#cap .s{position:absolute;left:66px;top:74px;font-size:24px;font-weight:600;color:var(--muted)}
+#hud{position:absolute;right:14px;bottom:10px;font:14px monospace;color:#c00;display:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="ground" width="1920" height="1080"></canvas>
+  <div id="world">
+    <!-- laptop: the host's create page -->
+    <div id="lid" class="a"></div>
+    <div id="scr" class="a"><div class="app" id="app"></div></div>
+    <div id="base" class="a"><i></i></div>
+    <div id="phones"></div>
+    <div id="card" class="a"><div class="in" id="cardIn"></div></div>
+    <div id="glow" class="a"></div>
+    <div id="dots"></div>
+    <div id="pills"></div>
+    <div id="badge" class="a"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M8.5 15l2.5 2.5 4.5-4.5"/></svg></div>
+    <div id="mark" class="a"></div>
+    <div id="tag" class="a"></div>
+  </div>
+  <svg id="cursor" viewBox="0 0 34 44"><path d="M4 3 L30 22 L18 24 L26 40 L20 43 L12 27 L4 36 Z" fill="#1A0C04" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>
+  <div id="cap"></div>
+  <div id="hud"></div>
+</div>
+<script src="motion.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// timeline (seconds) — one take, carried by the camera, the link and the votes
+//  0.00–2.30  close on the laptop: title types, three dates clicked          快速建立
+//  2.30–3.00  pull back to the laptop, the hand clicks 產生活動連結
+//  3.00–4.30  the button becomes a link pill, which flies out; the camera whips after it
+//  4.30–4.80  the pill splits onto four phones; each screen opens from where it lands
+//  4.80–7.30  close on 小明's phone: ○ ○ ○ 送出; pull back as the other three finish   快速投票
+//  7.50–9.10  every answer leaves its phone and lands in the ranking               自動彙整
+//  9.10–11.0  hold: 10/4 (日) 18:00 is the best slot
+// 11.00–15.0  the ranking folds into the badge, 揪甘心 drops in, tagline, hold
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+const DUR=15;
+window.__meta={dur:DUR,fps:30,w:1920,h:1080,
+  inFrame:{pill:[3.05,4.3], card:[8.4,10.95,'whole'], mark:[12.2,15,'whole']}};
+const {clamp,lerp,seg,sstep,ssstep,spring,ring,spline,ease}=OM;
+const $=id=>document.getElementById(id);
+const fx=v=>v.toFixed(2);
+
+// ── content: the demo-gathering seed (src/lib/localEventStore.ts), dates as they resolve on 2026-10-02 ──
+const TITLE='八月好友暑期歡聚小酌隊';
+const SLOTS=[ // the three the phones show, in the order the vote screen lists them
+  {id:'slot_1', day:'10/4 (日)', tm:'12:00', lb:'燒肉店聚餐'},
+  {id:'slot_2', day:'10/4 (日)', tm:'18:00', lb:'餐酒館小酌'},
+  {id:'slot_4', day:'10/5 (一)', tm:'18:00', lb:'火鍋吃到飽'},
+];
+const PEOPLE=[ // real answers for slot_1, slot_2, slot_4 — A available, I if needed, U unavailable
+  {name:'小明',      v:['A','A','A']},
+  {name:'Lily 莉莉', v:['I','A','A']},
+  {name:'陳大華',    v:['U','A','A']},
+  {name:'主揪阿傑',  v:['A','A','A']},
+];
+// ranking as the app computes it: most ○, then earliest
+const RANK=[1,2,0];   // indices into SLOTS: 10/4 18:00 · 10/5 18:00 · 10/4 12:00
+
+// ── icons ──
+const SVG={
+  A:c=>`<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="${c}" stroke-width="2.8"/></svg>`,
+  I:c=>`<svg viewBox="0 0 20 20"><path d="M10 3 L17.5 16.5 L2.5 16.5 Z" fill="none" stroke="${c}" stroke-width="2.6" stroke-linejoin="round"/></svg>`,
+  U:c=>`<svg viewBox="0 0 20 20"><path d="M4 4 L16 16 M16 4 L4 16" stroke="${c}" stroke-width="2.8" stroke-linecap="round"/></svg>`,
+  link:`<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>`,
+  cal:`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>`,
+};
+const VCOL={A:'#5A9E5A', I:'#F59E0B', U:'#9B8870'};
+
+// ════════════════════════════ geometry (world px) ════════════════════════════
+const LAP={x:120,y:170,s:0.75};                               // laptop replica: local 1280×800 → world
+const lapW=(lx,ly)=>({x:LAP.x+lx*LAP.s, y:LAP.y+ly*LAP.s});
+const CELL=(r,c)=>({x:64+c*101.71+50.86, y:366+r*62+31});      // calendar cell centre, laptop-local
+const DATES=[{r:1,c:0,d:'2026-10-04',w:'週日'},{r:1,c:1,d:'2026-10-05',w:'週一'},{r:2,c:0,d:'2026-10-11',w:'週日'}];
+const TITLE_C=lapW(420,204), GO_L={x:856,y:700,w:360,h:56}, GO_W={x:LAP.x+GO_L.x*.75,y:LAP.y+GO_L.y*.75,w:GO_L.w*.75,h:GO_L.h*.75};
+
+const PS=0.8, PH={w:375*PS,h:812*PS};
+const PX=i=>1560+i*340, PY=215;
+const ROWY=[400,470,572];                                      // vote rows' button centre y, phone-local
+const BTNX={A:230,I:280,U:330};                                // button centre x, phone-local (row left 14 + offsets)
+const SUB_C={x:187,y:758};
+
+const CARD={x:1770,y:270,w:900,h:560};
+const BADGE={x:1900,y:448,w:150,h:150,r:38};
+
+// ════════════════════════════ beats ════════════════════════════
+const T={ TYPE0:0.45, CPS:14, DCLK:[1.38,1.72,2.06], GO:2.95, MORPH0:3.0, MORPH1:3.32, HOP1:4.25,
+  SPLIT1:4.58, IRIS:4.52, IRIS_D:0.5, CARD_IN:7.55, RECEDE0:7.7, RECEDE1:8.35, BEST:9.25, FOLD0:11.0, FOLD1:11.75,
+  MARK:11.55, TAG:12.05 };
+const TAPS=[ // per phone: three answer taps, then 送出
+  {tap:[5.30,5.58,5.86], sub:6.30},
+  {tap:[5.45,5.80,6.10], sub:6.62},
+  {tap:[5.55,5.92,6.30], sub:6.85},
+  {tap:[5.38,5.70,6.18], sub:6.98},
+];
+// the answers fly: phone k, row r leaves at LAUNCH(k,r), lands DOT_D later
+const LAUNCH=(k,r)=>7.62+k*0.12+r*0.05, DOT_D=0.62;
+
+// ════════════════════════════ build: laptop replica ════════════════════════════
+const app=$('app');
+app.innerHTML=`
+ <div class="a hdr"><div class="logo">${SVG.cal}</div><div class="nm">揪甘心</div><div class="sb">聚會時間協調神器</div><div class="av">王</div></div>
+ <div class="a cardL">
+   <div class="lab" style="left:24px;top:22px;font-size:19px">基本活動資訊</div>
+   <div class="lab" style="left:24px;top:62px">活動 / 聚會名稱 <b>*</b></div>
+   <div class="inp" id="ttl" style="left:24px;top:90px;width:712px"></div>
+   <div class="lab" style="left:24px;top:166px">候選日期</div>
+   <div class="mon"><span style="left:0">‹</span>2026年10月<span style="right:0">›</span></div>
+   ${'日一二三四五六'.split('').map((d,i)=>`<div class="wk" style="left:${24+i*101.71}px">${d}</div>`).join('')}
+   <div id="cells"></div>
+ </div>
+ <div class="a cardR">
+   <div class="chk"></div><div class="lab" style="left:58px;top:22px;font-size:19px">確認活動內容</div>
+   <div class="rtitle" id="rttl"></div>
+   <div class="dl">投票截止 10/9 (五) 11:59 PM<b>剩餘 7 天</b></div>
+   <div class="nsel" id="nsel"></div>
+   <div id="drows"></div>
+   <div class="go" id="go">產生活動連結</div>
+ </div>`;
+const cellEls={};
+for(let d=1;d<=31;d++){ const k=d+3, r=Math.floor(k/7), c=k%7, p=CELL(r,c);
+  const e=document.createElement('div'); e.className='cell'+(c===0||c===6?' we':'')+(d<2?' past':'');
+  e.style.left=(p.x-40-43)+'px'; e.style.top=(p.y-88-26)+'px'; e.textContent=d; $('cells').appendChild(e); cellEls[r+','+c]=e; }
+const dateEls=DATES.map(D=>cellEls[D.r+','+D.c]);
+const drowEls=DATES.map((D,i)=>{ const e=document.createElement('div'); e.className='drow'; e.style.top=(212+i*56)+'px';
+  e.innerHTML=`${D.d}<em>(${D.w})</em>`; $('drows').appendChild(e); return e; });
+
+// ════════════════════════════ build: phones ════════════════════════════
+const phones=PEOPLE.map((P,k)=>{
+  const ph=document.createElement('div'); ph.className='phone';
+  const rows=SLOTS.map((S,r)=>{ const top=ROWY[r]-31;
+    return `<div class="row" style="top:${top}px"><div class="tm">${S.tm}</div><div class="lb">${S.lb}</div>
+      ${['A','I','U'].map(s=>`<div class="vb" data-s="${s}" style="left:${BTNX[s]-14-21}px">${SVG[s]('#9B8870')}</div>`).join('')}</div>`; }).join('');
+  ph.innerHTML=`<div class="fr"></div><div class="sc">
+     <div class="off"><div class="dt">10月2日 星期五</div><div class="clk">20:41</div></div>
+     <div class="pv">
+       <div class="tb"><div class="t">${TITLE}</div></div>
+       <div class="info"><div class="t">${TITLE}</div><div class="badge">統計開放中</div><div class="d">投票截止 10/6 (二) 11:59 PM<b>剩餘 4 天</b></div></div>
+       <h5>填寫我的時間</h5><div class="nl">您的暱稱 *</div><div class="nm">${P.name}</div>
+       <div class="dh" style="top:${ROWY[0]-58}px">10/4 (日)</div>
+       <div class="dh" style="top:${ROWY[2]-58}px">10/5 (一)</div>
+       ${rows}
+       <div class="cm">想說的話（選填）</div>
+       <div class="sub">送出我的時間</div>
+       <div class="ripple"></div><div class="finger"></div>
+     </div>
+     <div class="island"></div></div>`;
+  $('phones').appendChild(ph);
+  const btn=[...ph.querySelectorAll('.row')].map(row=>{ const o={}; row.querySelectorAll('.vb').forEach(b=>o[b.dataset.s]=b); return o; });
+  return {el:ph, pv:ph.querySelector('.pv'), sub:ph.querySelector('.sub'), finger:ph.querySelector('.finger'), rip:ph.querySelector('.ripple'), btn, P, tp:TAPS[k],
+    path: fingerPath(k)};
+});
+function fingerPath(k){ const tp=TAPS[k], v=PEOPLE[k].v, K=[];
+  K.push({t:tp.tap[0]-0.42, x:250, y:900});
+  tp.tap.forEach((tt,r)=>{ const x=BTNX[v[r]], y=ROWY[r]; K.push({t:tt-0.07,x:x+4,y:y+6},{t:tt+0.06,x,y}); });
+  K.push({t:tp.sub-0.08,x:SUB_C.x+30,y:SUB_C.y+4},{t:tp.sub+0.08,x:SUB_C.x+28,y:SUB_C.y},{t:tp.sub+0.5,x:300,y:940});
+  return K; }
+
+// ════════════════════════════ build: pill, ranking card, dots, lockup ════════════════════════════
+const pillHTML=`<div class="ic">${SVG.link}</div><div class="tx">揪甘心邀請 · ${TITLE}</div>`;
+const pill=document.createElement('div'); pill.className='pill'; pill.innerHTML=pillHTML; $('pills').appendChild(pill);
+const pillc=[0,1,2,3].map(()=>{ const e=document.createElement('div'); e.className='pill'; e.innerHTML=pillHTML; $('pills').appendChild(e); return e; });
+
+const RK_TOP=110, RK_H=146;
+$('cardIn').innerHTML=`<h3>交集時段與熱點分佈</h3><div class="cnt" id="cnt"></div>`+RANK.map((si,j)=>{ const S=SLOTS[si];
+  return `<div class="rk" style="top:${RK_TOP+j*RK_H}px"><div class="no">${j+1}</div><div class="dt">${S.day} ${S.tm}</div><div class="lb">${S.lb}</div>
+    <div class="ct"><span style="color:${VCOL.A}">○ <b class="cA">0</b></span><span style="color:${VCOL.I}">△ <b class="cI">0</b></span><span style="color:${VCOL.U}">✕ <b class="cU">0</b></span></div>
+    <div class="bar">${[0,1,2,3].map(q=>`<div class="seg" style="left:${q*203}px"></div>`).join('')}</div>
+    ${j===0?'<div class="best" id="best">最多人可以</div>':''}</div>`; }).join('');
+const rkEls=[...$('cardIn').querySelectorAll('.rk')];
+
+// one dot per answer; it lands in its slot's bar, segments filled ○ first, then △, then ✕
+const DOTS=[];
+RANK.forEach((si,j)=>{ const order=[];
+  PEOPLE.forEach((P,k)=>order.push({k,s:P.v[si]}));
+  const pri={A:0,I:1,U:2}; order.sort((a,b)=>pri[a.s]-pri[b.s]||LAUNCH(a.k,si)-LAUNCH(b.k,si));
+  order.forEach((o,q)=>DOTS.push({k:o.k, r:si, j, q, s:o.s, t0:LAUNCH(o.k,si)})); });
+DOTS.forEach(D=>{ const e=document.createElement('div'); e.className='dot'; e.style.background=VCOL[D.s]; e.innerHTML=SVG[D.s]('#fff'); $('dots').appendChild(e); D.el=e;
+  D.seg=rkEls[D.j].querySelectorAll('.seg')[D.q]; D.seg.style.background=VCOL[D.s]; });
+
+const MARK='揪甘心';
+const markL=[...MARK].map(ch=>{ const s=document.createElement('span'); s.textContent=ch; $('mark').appendChild(s); return s; });
+const TAGW=['快速建立','快速投票','自動彙整'];
+$('tag').innerHTML=TAGW.map((w,i)=>`<span>${w}</span>`).join('<i>·</i>');
+const tagS=[...$('tag').querySelectorAll('span')];
+
+// caption, screen space — the one thing that is never in the world
+const CAPS=[ {t:0.30, n:'01', w:'快速建立', s:'電腦上點幾下，活動就開好'},
+             {t:4.62, n:'02', w:'快速投票', s:'朋友手機一點，○ △ ✕ 就送出'},
+             {t:7.80, n:'03', w:'自動彙整', s:'大家的時間，自動排出最佳時段'} ];
+const CAP_OUT=10.75;
+$('cap').innerHTML=CAPS.map(c=>`<div class="row"><span class="n">${c.n}</span><span class="w">${c.w}</span><div class="s">${c.s}</div></div>`).join('');
+const capEls=[...$('cap').querySelectorAll('.row')];
+
+// ════════════════════════════ the hand (laptop) — world coordinates ════════════════════════════
+const DC=DATES.map(D=>lapW(CELL(D.r,D.c).x,CELL(D.r,D.c).y));
+const GO_C={x:GO_W.x+GO_W.w/2, y:GO_W.y+GO_W.h/2};
+const HAND=[ {t:0.0,x:980,y:760},{t:0.36,x:TITLE_C.x+90,y:TITLE_C.y+8},{t:1.05,x:TITLE_C.x+96,y:TITLE_C.y+12},
+  {t:1.30,x:DC[0].x+4,y:DC[0].y+4},{t:1.44,x:DC[0].x+2,y:DC[0].y+2},
+  {t:1.66,x:DC[1].x+4,y:DC[1].y+4},{t:1.78,x:DC[1].x+2,y:DC[1].y+2},
+  {t:2.00,x:DC[2].x+4,y:DC[2].y+3},{t:2.12,x:DC[2].x+2,y:DC[2].y+2},
+  {t:2.45,x:DC[2].x+160,y:DC[2].y+40},{t:2.86,x:GO_C.x+6,y:GO_C.y+4},{t:3.02,x:GO_C.x+6,y:GO_C.y+4},
+  {t:3.45,x:GO_C.x+150,y:GO_C.y+150} ];
+const CLICKS=[0.36,...T.DCLK,T.GO];
+
+// ════════════════════════════ camera ════════════════════════════
+const PC=i=>PX(i)+PH.w/2;
+const KEYS=[
+  {t:0.00, x:430, y:392, zoom:2.0},
+  {t:1.10, x:440, y:405, zoom:2.0,  curve:ease.sineInOut},
+  {t:2.20, x:470, y:440, zoom:1.95, curve:ease.sineInOut},      // riding the clicks down the calendar
+  {t:2.80, x:600, y:488, zoom:1.42, curve:ease.cubicInOut},      // pull back: the whole laptop, the button
+  {t:3.30, x:660, y:478, zoom:1.36, curve:ease.sineInOut},       // leaning after the pill as it lifts
+  {t:4.22, x:2220,y:590, zoom:1.20, curve:ease.expoInOut},       // whip to the phones — landing keyed before the pill gets there
+  {t:4.80, x:2220,y:590, zoom:1.20},
+  {t:5.22, x:PC(0)+40, y:672, zoom:1.72, curve:ease.cubicInOut},// close on 小明's phone
+  {t:6.40, x:PC(0)+60, y:684, zoom:1.70, curve:ease.sineInOut},
+  {t:7.20, x:2220,y:590, zoom:1.20, curve:ease.cubicInOut},      // back out: all four finish
+  {t:7.55, x:2220,y:590, zoom:1.20},
+  {t:8.45, x:2220,y:600, zoom:1.24, curve:ease.cubicInOut},      // settle on the ranking
+  {t:11.0, x:2220,y:600, zoom:1.24},
+  {t:11.85,x:2220,y:548, zoom:1.30, curve:ease.cubicInOut},      // the lockup
+];
+const HITS=[[4.30,5,9],[11.62,4,10]];
+const handEnv=t=>sstep(0.05,0.4,t)*(1-sstep(8.6,9.1,t));        // dead still in the hold and the end card
+function camAt(t){
+  const c=OM.camera(t,KEYS), e=handEnv(t)*3.4;
+  let x=c.x+e*(Math.sin(1.7*t)+0.6*Math.sin(2.9*t+1))/c.zoom, y=c.y+e*(Math.sin(1.3*t+2)+0.5*Math.sin(3.3*t))/c.zoom, rot=c.rot;
+  for(const [th,amp,decay] of HITS){ const s=OM.shake(t,th,{amp,decay,seed:Math.round(th*100)}); x+=s.x/c.zoom; y+=s.y/c.zoom; rot+=s.rot*0.5; }
+  return {x,y,zoom:c.zoom,rot};
+}
+
+// ════════════════════════════ ground ════════════════════════════
+const G=$('ground').getContext('2d');
+function ground(cam){
+  G.setTransform(1,0,0,1,0,0); G.fillStyle='#FFF8ED'; G.fillRect(0,0,1920,1080);
+  const L=OM.lattice(cam,{depth:1.2,spacing:56,px:1.6}); G.setTransform(...L.matrix); G.fillStyle='rgba(26,12,4,0.085)';
+  for(let x=L.x0;x<=L.x1;x+=L.spacing) for(let y=L.y0;y<=L.y1;y+=L.spacing){ G.beginPath(); G.arc(x,y,L.r,0,6.2832); G.fill(); }
+  G.setTransform(1,0,0,1,0,0);
+  const v=G.createRadialGradient(960,540,500,960,540,1250); v.addColorStop(0,'rgba(224,104,40,0)'); v.addColorStop(1,'rgba(224,104,40,0.07)');
+  G.fillStyle=v; G.fillRect(0,0,1920,1080);
+}
+
+// ════════════════════════════ helpers ════════════════════════════
+function put(el,x,y,s=1,op=1,extra=''){ el.style.opacity=op<0.002?0:fx(op); el.style.transform=`translate(${fx(x)}px,${fx(y)}px) scale(${s.toFixed(4)})${extra}`; el.style.display=op<0.002?'none':''; }
+function phoneXf(k,t){ // phone k's world transform: origin + scale; recedes behind the ranking
+  const r=ssstep(T.RECEDE0+k*0.04,T.RECEDE1+k*0.04,t), fold=ssstep(T.FOLD0,T.FOLD0+0.5,t);
+  const s=PS*lerp(1,0.86,r), cx=PC(k), cy=PY+PH.h/2+r*40;
+  return {x:cx-375*s/2, y:cy-812*s/2, s, op:lerp(1,0.22,r)*(1-fold)};
+}
+const phoneW=(k,t,lx,ly)=>{ const f=phoneXf(k,t); return {x:f.x+lx*f.s, y:f.y+ly*f.s}; };
+function cardXf(t){ const p=OM.popIn(t,T.CARD_IN,{zeta:0.7,omega:15,rise:90,s0:0.9,ds:0.1}); return {x:CARD.x+CARD.w*(1-p.s)/2, y:CARD.y+p.dy+CARD.h*(1-p.s)/2, s:p.s, op:t<T.CARD_IN?0:p.op}; }
+const segW=(t,j,q)=>{ const c=cardXf(t); return {x:c.x+(30+14+q*203+101)*c.s, y:c.y+(RK_TOP+j*RK_H+96+10)*c.s}; };
+function stateAt(k,r,t){ const tt=TAPS[k].tap[r]; return t>=tt?PEOPLE[k].v[r]:null; }
+
+// ════════════════════════════ seek ════════════════════════════
+let CAM, VIEW, TRACK={};
+function seek(t){
+  CAM=camAt(t); VIEW=OM.view(CAM); ground(CAM);
+  $('world').style.transform=`matrix(${VIEW.map(v=>v.toFixed(5)).join(',')})`;
+  TRACK={};
+
+  // ── laptop ──
+  const ty=OM.typeOn(t,T.TYPE0,TITLE,{cps:T.CPS});
+  $('ttl').innerHTML=ty.n?`${ty.str}${t<T.DCLK[0]&&ty.caret?'<i></i>':''}`:`<span class="ph">例如：產品專案週對齊會議</span>${t>0.36&&ty.caret?'':''}`;
+  $('rttl').textContent=ty.n?ty.str:'（尚未命名）';
+  let nsel=0;
+  DATES.forEach((D,i)=>{ const tc=T.DCLK[i], on=t>=tc, el=dateEls[i]; el.classList.toggle('on',on); if(on) nsel++;
+    const p=OM.press(t,tc,{depth:0.22}); el.style.transform=`scale(${fx(p.s)})`;
+    const w=OM.popIn(t,tc+0.02,{rise:18}); const dr=drowEls[i]; dr.style.opacity=on?w.op:0; dr.style.transform=`translateY(${fx(w.dy)}px) scale(${w.s.toFixed(3)})`; });
+  $('nsel').textContent=nsel?`目前已選取 ${nsel} 天作為投票候選時段`:'請在左側日曆選擇候選日期';
+  { const go=$('go'), ready=nsel>0, p=OM.press(t,T.GO,{depth:0.12}), gone=t>=T.MORPH0;
+    go.style.background=ready?'var(--primary)':'#F2B99A'; go.style.transform=`scale(${fx(p.s)})`; go.style.opacity=gone?0:1; }
+  TRACK.laptop={x:96,y:146,w:1074,h:676};
+
+  // ── link pill: the pressed button becomes the link, which flies to the phones ──
+  { const A={x:GO_W.x,y:GO_W.y,w:GO_W.w,h:GO_W.h}, B={x:GO_C.x-280,y:GO_C.y-90-42,w:560,h:84};
+    const vis=t>=T.MORPH0&&t<T.HOP1;
+    if(vis){ const m=OM.morphRect(t,T.MORPH0,T.MORPH1,A,B,{curve:ease.expoOut});
+      const h=OM.hop(t,T.MORPH1-0.04,T.HOP1,{x:B.x+280,y:B.y+42},{x:2220,y:236},{height:150,curve:ease.smoother});
+      const k=seg(t,T.MORPH0,T.MORPH1), cx=t<T.MORPH1?m.cx:h.x, cy=t<T.MORPH1?m.cy:h.y;
+      const sx=m.w/560, sy=m.h/84, im=OM.impact(t,T.MORPH1,{decay:8,omega:20,sqx:0.06,sqy:0.08});
+      pill.style.width='560px'; pill.style.display=''; pill.style.opacity=1;
+      pill.style.transform=`translate(${fx(cx-280)}px,${fx(cy-42)}px) scale(${(sx*im.sx).toFixed(4)},${(sy*im.sy).toFixed(4)})`;
+      pill.querySelector('.tx').style.opacity=sstep(0.35,0.9,k); pill.querySelector('.ic').style.opacity=sstep(0.2,0.8,k);
+      TRACK.pill={x:cx-m.w/2,y:cy-m.h/2,w:m.w,h:m.h};
+    } else { pill.style.display='none'; }
+    // split: four copies, one per phone, landing as a banner where each screen will open
+    pillc.forEach((e,i)=>{ const on=t>=T.HOP1&&t<T.SPLIT1+0.5; if(!on){ e.style.display='none'; return; }
+      const to=phoneW(i,t,187,64), g=OM.gather(t,T.HOP1,T.SPLIT1-0.12,i,4,{x:2220,y:236},to,{stagger:0.04,arc:18,spin:0.06,curve:ease.cubicOut});
+      const s=lerp(1,0.5,g.k), fade=1-sstep(T.IRIS+i*0.05+0.08,T.IRIS+i*0.05+0.3,t);
+      e.style.display=''; e.style.opacity=fx(fade);
+      e.style.transform=`translate(${fx(g.x-280)}px,${fx(g.y-42)}px) rotate(${fx(g.rot)}rad) scale(${s.toFixed(4)})`;
+      if(i===0) TRACK.pill={x:g.x-280*s,y:g.y-42*s,w:560*s,h:84*s}; });
+  }
+
+  // ── phones ──
+  phones.forEach((ph,k)=>{
+    const f=phoneXf(k,t); put(ph.el,f.x,f.y,f.s,f.op);
+    // the screen opens from where the link landed
+    const ir=OM.iris(t,T.IRIS+k*0.05,T.IRIS+k*0.05+T.IRIS_D,187,64,{W:375,H:812,curve:ease.expoOut});
+    ph.pv.style.clipPath=`circle(${fx(ir.r)}px at 187px 64px)`; ph.pv.style.display=ir.r<0.5?'none':'';
+    // answers
+    SLOTS.forEach((S,r)=>{ const st=stateAt(k,r,t); ['A','I','U'].forEach(s=>{ const b=ph.btn[r][s], on=st===s;
+        b.style.background=on?VCOL[s]:'#fff'; b.style.borderColor=on?VCOL[s]:'var(--border-strong)';
+        b.innerHTML=SVG[s](on?'#fff':'#9B8870');
+        const p=on?OM.press(t,ph.tp.tap[r],{depth:0.28,decay:9,omega:26}):{s:1}; b.style.transform=`scale(${fx(p.s)})`; }); });
+    const sp=OM.press(t,ph.tp.sub,{depth:0.08}), done=t>=ph.tp.sub;
+    ph.sub.style.background=done?'var(--success)':'var(--primary)'; ph.sub.textContent=done?'已送出 ✓ 謝謝你！':'送出我的時間'; ph.sub.style.transform=`scale(${fx(sp.s)})`;
+    // the finger
+    const K=ph.path, fv=sstep(K[0].t,K[0].t+0.18,t)*(1-sstep(ph.tp.sub+0.2,ph.tp.sub+0.42,t));
+    const fp=spline(K,t); let fs=1; for(const c of [...ph.tp.tap,ph.tp.sub]){ const d=t-c; if(d>=0&&d<0.12) fs=0.82; }
+    ph.finger.style.display=fv<0.01?'none':''; ph.finger.style.opacity=fx(fv); ph.finger.style.transform=`translate(${fx(fp[0])}px,${fx(fp[1])}px) scale(${fs})`;
+    // a ring where the last tap landed
+    let rt=-1, rp=null; [...ph.tp.tap.map((c,r)=>[c,{x:BTNX[PEOPLE[k].v[r]],y:ROWY[r]}]),[ph.tp.sub,SUB_C]].forEach(([c,p])=>{ if(t>=c){rt=c;rp=p;} });
+    const ra=rt<0?1:seg(t,rt,rt+0.35);
+    if(rt<0||ra>=1){ ph.rip.style.display='none'; } else { ph.rip.style.display=''; const R=lerp(1,7,ease.cubicOut(ra));
+      ph.rip.style.opacity=fx(1-ra); ph.rip.style.transform=`translate(${fx(rp.x)}px,${fx(rp.y)}px) scale(${fx(R)})`; }
+  });
+  TRACK.phone0=(()=>{ const f=phoneXf(0,t); return {x:f.x,y:f.y,w:375*f.s,h:812*f.s,op:f.op}; })();
+
+  // ── ranking card ──
+  const fold=OM.morphRect(t,T.FOLD0,T.FOLD1,{...CARD,r:30},BADGE,{curve:ease.expoInOut});
+  { const c=cardXf(t), card=$('card');
+    if(t<T.FOLD0){ card.style.width=CARD.w+'px'; card.style.height=CARD.h+'px'; card.style.borderRadius='30px';
+      put(card,c.x,c.y,c.s,c.op); card.style.background='#fff'; $('cardIn').style.opacity=1;
+      TRACK.card={x:c.x,y:c.y,w:CARD.w*c.s,h:CARD.h*c.s,op:c.op};
+    } else if(t<T.FOLD1+0.02){ // the card folds into the badge
+      card.style.width=fx(fold.w)+'px'; card.style.height=fx(fold.h)+'px'; card.style.borderRadius=fx(fold.r)+'px'; put(card,fold.x,fold.y,1,1);
+      const k=fold.k; card.style.background=`rgb(${Math.round(lerp(255,224,sstep(0.15,0.7,k)))},${Math.round(lerp(255,104,sstep(0.15,0.7,k)))},${Math.round(lerp(255,40,sstep(0.15,0.7,k)))})`;
+      $('cardIn').style.opacity=fx(1-sstep(0,0.3,k));
+      TRACK.card={x:fold.x,y:fold.y,w:fold.w,h:fold.h};
+    } else card.style.display='none';
+    // tallies: what has landed
+    const landed={}; let full=0;
+    DOTS.forEach(D=>{ const tl=D.t0+DOT_D; const on=t>=tl; const key=D.j+D.s; landed[key]=(landed[key]||0)+(on?1:0);
+      const sk=on?spring(t-tl,0.55,22):0; D.seg.style.transform=`scaleX(${sk.toFixed(4)})`; });
+    PEOPLE.forEach((P,k)=>{ if(t>=Math.max(...SLOTS.map((S,r)=>LAUNCH(k,r)))+DOT_D) full++; });
+    rkEls.forEach((el,j)=>{ ['A','I','U'].forEach(s=>{ el.querySelector('.c'+s).textContent=landed[j+s]||0; }); });
+    $('cnt').textContent=`共 ${full} 人已回覆`;
+    // the best slot: a ring that hugs it, and its tag
+    const b=$('best'), bw=OM.popIn(t,T.BEST+0.08,{zeta:0.55,omega:20,rise:10,s0:0.6,ds:0.4});
+    b.style.opacity=t<T.BEST+0.08?0:fx(bw.op); b.style.transform=`translateY(${fx(bw.dy)}px) scale(${bw.s.toFixed(3)})`;
+    const gl=$('glow'), gk=t<T.BEST?0:spring(t-T.BEST,0.6,18), gout=1-sstep(T.FOLD0-0.1,T.FOLD0+0.15,t);
+    if(gk<=0||gout<=0){ gl.style.display='none'; } else { const cc=cardXf(t), pad=lerp(26,8,gk);
+      const x=cc.x+(30-pad)*cc.s, y=cc.y+(RK_TOP-pad)*cc.s, w=(840+2*pad)*cc.s, h=(136+2*pad)*cc.s;
+      gl.style.display=''; gl.style.width=fx(w)+'px'; gl.style.height=fx(h)+'px'; put(gl,x,y,1,Math.min(1,gk*1.4)*gout); }
+  }
+
+  // ── the answers fly from each phone into the ranking ──
+  let dbox=null;
+  DOTS.forEach(D=>{ const e=D.el, t1=D.t0+DOT_D;
+    if(t<D.t0||t>=t1+0.12||t>=T.FOLD0){ e.style.display='none'; return; }
+    const from=phoneW(D.k,D.t0,BTNX[D.s],ROWY[D.r]), to=segW(t,D.j,D.q);
+    const g=OM.gather(t,D.t0,t1,0,1,from,to,{stagger:0,arc:90+D.k*14,curve:ease.cubicInOut});
+    const land=seg(t,t1,t1+0.12), s=(0.8+0.25*Math.sin(Math.PI*Math.min(1,g.k)))*(1-land);
+    e.style.display=''; e.style.opacity=fx(1-land); e.style.transform=`translate(${fx(g.x)}px,${fx(g.y)}px) scale(${s.toFixed(3)})`;
+    const bx={x:g.x-20,y:g.y-20,w:40,h:40}; dbox=dbox?{x:Math.min(dbox.x,bx.x),y:Math.min(dbox.y,bx.y),x2:Math.max(dbox.x+dbox.w,bx.x+40),y2:Math.max(dbox.y+dbox.h,bx.y+40)}:{...bx,x2:bx.x+40,y2:bx.y+40};
+    if(dbox){ dbox.w=dbox.x2-dbox.x; dbox.h=dbox.y2-dbox.y; } });
+  if(dbox) TRACK.dots={x:dbox.x,y:dbox.y,w:dbox.w,h:dbox.h};
+
+  // ── lockup ──
+  { const bd=$('badge'), on=t>=T.FOLD1;
+    if(on){ const im=OM.impact(t,T.FOLD1,{decay:7,omega:20,sqx:0.1,sqy:0.12});
+      bd.style.display=''; bd.style.width=BADGE.w+'px'; bd.style.height=BADGE.h+'px';
+      bd.style.transform=`translate(${BADGE.x+BADGE.w*(1-im.sx)/2}px,${BADGE.y+BADGE.h*(1-im.sy)}px) scale(${im.sx.toFixed(4)},${im.sy.toFixed(4)})`;
+      bd.querySelector('svg').style.opacity=1; bd.querySelector('svg').style.transform=`scale(${fx(0.6+0.4*spring(t-T.FOLD1,0.5,22))})`;
+    } else if(t>=T.FOLD0){ bd.style.display='none'; } else bd.style.display='none';
+    markL.forEach((s,i)=>{ const d=OM.letterDrop(t,T.MARK,i,{stagger:0.07,dist:60});
+      s.style.opacity=t<T.MARK?0:fx(d.op); s.style.transform=`translateY(${fx(d.y)}px) scale(${d.sx.toFixed(4)},${d.sy.toFixed(4)})`; });
+    tagS.forEach((s,i)=>{ const w=OM.wordRise(t,T.TAG+i*0.16,{dist:22}); s.style.opacity=t<T.TAG?0:fx(w.op); s.style.transform=`translateY(${fx(w.y)}px)`; });
+    $('tag').querySelectorAll('i').forEach((e,i)=>{ e.style.opacity=fx(sstep(T.TAG+0.1+i*0.16,T.TAG+0.3+i*0.16,t)); });
+    $('mark').style.display=t<T.MARK?'none':''; $('tag').style.display=t<T.TAG?'none':'';
+    if(t>=T.MARK) TRACK.mark={x:BADGE.x,y:BADGE.y-10,w:2090+470-BADGE.x,h:170};
+  }
+
+  // ── screen space: the cursor, the caption ──
+  { const cu=OM.cursor(t,HAND,CLICKS), p=OM.project(VIEW,cu.x,cu.y), vis=sstep(0.05,0.25,t)*(1-sstep(3.2,3.45,t));
+    const el=$('cursor'); el.style.display=vis<0.01?'none':''; el.style.opacity=fx(vis); el.style.transform=`translate(${fx(p[0]-4)}px,${fx(p[1]-3)}px) scale(${cu.s})`;
+    if(vis>0.01) TRACK.hand={x:p[0],y:p[1],w:30,h:40}; }
+  { const ci=OM.popIn(t,CAPS[0].t-0.05,{rise:24}), co=ssstep(CAP_OUT+0.1,CAP_OUT+0.45,t), cp=$('cap');
+    cp.style.display=(t<CAPS[0].t-0.05||co>=1)?'none':''; cp.style.opacity=fx(ci.op*(1-co)); cp.style.transform=`translateY(${fx(ci.dy+co*30)}px)`; }
+  capEls.forEach((el,i)=>{ const c=CAPS[i], nx=CAPS[i+1];
+    const kin=spring(t-c.t,0.62,18), kout=nx?ssstep(nx.t-0.05,nx.t+0.25,t):ssstep(CAP_OUT,CAP_OUT+0.35,t);
+    const y=(1-kin)*120 - kout*120; const vis=t>=c.t&&kout<1;
+    el.style.display=vis?'':'none'; el.style.transform=`translateY(${fx(y)}px)`; el.style.opacity=fx(Math.min(1,kin*1.4)*(1-kout)); });
+
+  $('hud').textContent='t='+t.toFixed(3);
+  return Promise.resolve();
+}
+
+// ════════════════════════════ contract ════════════════════════════
+window.__seek=async t=>{ await seek(t); return true; };
+window.__track=t=>{ seek(t); const M=VIEW, o={};
+  for(const [k,b] of Object.entries(TRACK)) o[k]= k==='hand'?b:OM.projectBox(M,b);
+  return o; };
+window.__motion=(t0,t1)=>{
+  const tm=(t0+t1)/2; let d=OM.screenTravel(camAt(t0),camAt(t1),camAt(tm));
+  const a=window.__track(t0), b=window.__track(t1);
+  for(const k of Object.keys(a)){ if(!b[k]) continue; const p=a[k], q=b[k];
+    d=Math.max(d,Math.abs(p.x-q.x),Math.abs(p.y-q.y),Math.abs(p.x+p.w-q.x-q.w),Math.abs(p.y+p.h-q.y-q.h)); }
+  seek(t1); return d; };
+window.__events=()=>{ const E=[];
+  CLICKS.forEach((c,i)=>E.push({t:c,kind:i===0?'focus':i===CLICKS.length-1?'go':'date'}));
+  for(let i=0;i<TITLE.length;i++) E.push({t:T.TYPE0+i/T.CPS,kind:'key'});
+  E.push({t:T.MORPH1,kind:'lift'},{t:T.HOP1,kind:'land'});
+  [0,1,2,3].forEach(k=>E.push({t:T.IRIS+k*0.05,kind:'open',pan:-0.6+k*0.4}));
+  TAPS.forEach((tp,k)=>{ tp.tap.forEach((c,r)=>E.push({t:c,kind:'vote',s:PEOPLE[k].v[r],pan:-0.6+k*0.4})); E.push({t:tp.sub,kind:'send',pan:-0.6+k*0.4}); });
+  DOTS.forEach(D=>E.push({t:D.t0+DOT_D,kind:'drop',s:D.s,j:D.j,pan:(D.q-1.5)*0.2}));
+  E.push({t:T.BEST,kind:'best'},{t:T.FOLD0,kind:'fold'},{t:T.FOLD1,kind:'seal'});
+  markL.forEach((s,i)=>E.push({t:T.MARK+i*0.07+0.06,kind:'letter',i}));
+  E.push({t:T.TAG,kind:'tag'});
+  return E.sort((a,b)=>a.t-b.t); };
+window.__ready=document.fonts.ready.then(()=>seek(0));
+const q=new URLSearchParams(location.search);
+if(q.has('t')) __ready.then(()=>seek(parseFloat(q.get('t'))));
+if(q.has('hud')) $('hud').style.display='block';
+if(q.has('play')) __ready.then(()=>{const t0=performance.now();(function loop(){seek(((performance.now()-t0)/1000)%DUR);requestAnimationFrame(loop);})();});
+</script>
+</body>
+</html>

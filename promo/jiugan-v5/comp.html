@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>揪甘心 · 28s</title>
+<!-- 揪甘心 28 s — v3. One take over a city map where four people sit in four illustrated places (阿傑's living room,
+     小明's office, Lily on the MRT, 陳大華 in a café), each holding their own phone. 阿傑 has the idea, builds the event
+     (dates by drag, as MonthCalendar.tsx does), the link crosses the map, everyone votes, the votes cross back into one
+     ranking, the winning slot returns to 阿傑, AI picks the restaurant, its pin drops in the middle and every phone is told.
+     Close-ups frame the control being used, not the whole phone. Every value is f(t). Palette: colors.css tokens.
+     Content: demo-gathering seed (localEventStore.ts) and AI demo candidates (aiRecommendDemo.ts). -->
+<style>
+:root{
+  --primary:#e06828; --primary-dark:#C2551A; --primary-subtle:#FDF1E9; --secondary:#ffd900;
+  --ink:#1A0C04; --ink60:rgba(26,12,4,.6);
+  --cream:#FFF8ED; --muted:#9B8870; --border:#F0E8D8; --border-strong:#D9CCBA;
+  --success:#5A9E5A; --warning:#F59E0B;
+  --font:-apple-system,'PingFang TC','Heiti TC','Noto Sans TC',sans-serif;
+}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--cream)}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:absolute;inset:0;overflow:hidden;background:var(--cream)}
+#ground{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#world{position:absolute;left:0;top:0;width:10px;height:10px;transform-origin:0 0}
+.a{position:absolute;box-sizing:border-box}
+
+/* ── scene tiles ── */
+.tile{position:absolute;left:0;top:0;width:1000px;height:1000px;border-radius:64px;overflow:hidden;box-shadow:0 40px 80px -40px rgba(26,12,4,.35)}
+.tile svg.scene{position:absolute;left:0;top:0;width:1000px;height:1000px}
+.ttag{position:absolute;left:0;top:0;height:72px;border-radius:36px;background:rgba(26,12,4,.86);color:#fff;font-size:30px;font-weight:800;line-height:72px;padding:0 26px 0 66px;white-space:nowrap}
+.ttag b{position:absolute;left:20px;top:19px;width:34px;height:34px;border-radius:50%;font-size:0}
+.ttag .role{display:inline-block;height:38px;border-radius:19px;font-size:20px;font-weight:900;line-height:38px;padding:0 12px;margin-left:14px;vertical-align:4px;border:1.5px solid rgba(255,255,255,.4);color:rgba(255,255,255,.75)}
+.ttag .role.host{background:var(--secondary);border-color:var(--secondary);color:var(--ink)}
+.ttag em{font-style:normal;color:rgba(255,255,255,.65);font-weight:700;margin-left:8px}
+
+/* ── phones ── */
+.phone{position:absolute;left:0;top:0;width:375px;height:812px;transform-origin:0 0}
+.phone svg.hand{position:absolute;overflow:visible}
+.phone .fr{position:absolute;left:-12px;top:-12px;width:399px;height:836px;border-radius:62px;background:#2b211b;box-shadow:0 40px 70px -36px rgba(26,12,4,.55)}
+.phone .sc{position:absolute;left:0;top:0;width:375px;height:812px;border-radius:50px;overflow:hidden;background:#211611}
+.phone .island{position:absolute;left:131px;top:11px;width:113px;height:32px;border-radius:16px;background:#000;z-index:9}
+.off{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,#3a2a20,#1d130e)}
+.off .clk{position:absolute;left:0;right:0;top:118px;text-align:center;color:#fff;font-size:78px;font-weight:300}
+.off .dt{position:absolute;left:0;right:0;top:94px;text-align:center;color:rgba(255,255,255,.75);font-size:17px;font-weight:600}
+.home{position:absolute;inset:0;background:linear-gradient(170deg,#F9DDBE,#F0B58A)}
+.home .ck{position:absolute;left:28px;top:16px;font-size:16px;font-weight:800;color:#5a3a24}
+.ap{position:absolute;width:64px;height:64px;border-radius:17px}
+.apl{position:absolute;width:86px;text-align:center;font-size:12px;font-weight:700;color:#5a3a24}
+.scr{position:absolute;left:0;top:0;width:375px;height:812px;background:var(--cream);overflow:hidden}
+.hd{position:absolute;left:0;top:0;width:375px;height:122px;background:var(--primary);color:#fff}
+.hd .k{position:absolute;left:22px;top:56px;font-size:14px;font-weight:700;opacity:.85}
+.hd .t{position:absolute;left:22px;top:78px;font-size:22px;font-weight:900;white-space:nowrap}
+.q{position:absolute;left:22px;font-size:17px;font-weight:800;color:var(--muted)}
+.big{position:absolute;left:14px;width:347px;border-radius:18px;background:#fff;box-shadow:0 6px 18px -10px rgba(26,12,4,.25)}
+.btn{position:absolute;left:14px;top:712px;width:347px;height:66px;border-radius:33px;background:var(--primary);color:#fff;font-size:24px;font-weight:900;text-align:center;line-height:66px;transform-origin:50% 50%}
+.finger{position:absolute;left:0;top:0;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(26,12,4,.16);border:3px solid rgba(255,255,255,.95);box-shadow:0 4px 14px rgba(26,12,4,.25);box-sizing:border-box;z-index:20}
+.ripple{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:3px solid var(--primary);box-sizing:border-box;z-index:19}
+.banner{position:absolute;left:12px;top:0;width:351px;height:92px;border-radius:24px;background:rgba(255,255,255,.97);box-shadow:0 16px 36px -14px rgba(26,12,4,.45);z-index:15}
+.banner .ic{position:absolute;left:14px;top:16px;width:60px;height:60px;border-radius:16px;background:var(--primary-subtle);font-size:36px;text-align:center;line-height:60px}
+.banner .a1{position:absolute;left:88px;top:16px;font-size:14px;font-weight:700;color:var(--muted)}
+.banner .a2{position:absolute;left:88px;top:40px;font-size:20px;font-weight:900;white-space:nowrap}
+
+/* create */
+.fld{position:absolute;left:14px;top:184px;width:347px;height:64px;border-radius:16px;background:#fff;border:2.5px solid var(--primary);font-size:22px;font-weight:900;line-height:59px;padding-left:16px;box-sizing:border-box;white-space:nowrap;overflow:hidden}
+.fld .ph{color:#cdbfad;font-weight:700}
+.fld i{display:inline-block;width:3px;height:26px;background:var(--primary);vertical-align:-4px;margin-left:2px}
+.wkd{position:absolute;top:322px;width:48px;text-align:center;font-size:14px;font-weight:700;color:var(--muted)}
+.dc{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;font-size:20px;font-weight:800;text-align:center;line-height:44px;transform-origin:50% 50%}
+.dc.we{color:#A1493B}
+.dc.on{background:var(--primary);color:#fff}
+.trail{position:absolute;height:52px;margin-top:-26px;border-radius:26px;background:rgba(224,104,40,.2)}
+.cnt7{position:absolute;left:14px;top:494px;height:48px;border-radius:24px;background:var(--primary-subtle);color:var(--primary-dark);font-size:21px;font-weight:900;line-height:48px;padding:0 18px;transform-origin:0 50%}
+.hint{position:absolute;left:22px;top:560px;font-size:14px;font-weight:700;color:var(--muted)}
+
+/* vote */
+.who{position:absolute;left:14px;top:138px;height:44px;border-radius:22px;background:#fff;font-size:19px;font-weight:900;line-height:44px;padding:0 16px 0 52px;box-shadow:0 4px 12px -8px rgba(26,12,4,.3)}
+.who b{position:absolute;left:6px;top:6px;width:32px;height:32px;border-radius:50%;color:#fff;font-size:15px;text-align:center;line-height:32px}
+.slot{position:absolute;left:14px;width:347px;height:118px;border-radius:20px;background:#fff;box-shadow:0 6px 18px -10px rgba(26,12,4,.25)}
+.slot .d{position:absolute;left:20px;top:22px;font-size:17px;font-weight:800;color:var(--muted)}
+.slot .h{position:absolute;left:18px;top:44px;font-size:42px;font-weight:900}
+.vb{position:absolute;top:31px;width:56px;height:56px;border-radius:50%;border:2.5px solid var(--border-strong);background:#fff;box-sizing:border-box;transform-origin:50% 50%}
+.vb svg{position:absolute;left:14px;top:14px;width:23px;height:23px}
+
+/* final + AI */
+.fin .lbl{position:absolute;left:22px;top:22px;font-size:17px;font-weight:900;color:var(--success)}
+.fin .d{position:absolute;left:22px;top:52px;font-size:26px;font-weight:900}
+.fin .h{position:absolute;left:20px;top:82px;font-size:64px;font-weight:900;line-height:80px}
+.fin .n{position:absolute;right:22px;top:132px;font-size:16px;font-weight:800;color:var(--muted)}
+.aib{position:absolute;left:14px;top:372px;width:347px;height:96px;border-radius:24px;background:linear-gradient(110deg,#e06828,#f08950 55%,#ffc94a);color:#fff;transform-origin:50% 50%;box-shadow:0 18px 30px -16px rgba(224,104,40,.7)}
+.aib .t{position:absolute;left:78px;top:18px;font-size:25px;font-weight:900}
+.aib .s{position:absolute;left:78px;top:54px;font-size:15px;font-weight:700;opacity:.92}
+.aib svg{position:absolute;left:20px;top:24px;width:44px;height:44px}
+.aib .gl{position:absolute;left:0;top:0;width:110px;height:96px;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.75),rgba(255,255,255,0))}
+.aib{overflow:visible}.aib .clip{position:absolute;inset:0;border-radius:24px;overflow:hidden}
+.aib .halo{position:absolute;left:-6px;top:-6px;right:-6px;bottom:-6px;border-radius:30px;border:4px solid #ffc94a}
+.ah{position:absolute;left:0;top:0;width:375px;height:118px;background:#fff;border-bottom:1.5px solid var(--border)}
+.sl{position:absolute;left:22px;font-size:16px;font-weight:800;color:var(--muted)}
+.ch{position:absolute;height:46px;border-radius:23px;background:#fff;border:2px solid var(--border-strong);box-sizing:border-box;font-size:18px;font-weight:800;text-align:center;line-height:42px;transform-origin:50% 50%}
+.ch.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.ch .auto{position:absolute;right:-6px;top:-14px;height:22px;border-radius:11px;background:var(--secondary);color:var(--ink);font-size:11px;font-weight:900;line-height:22px;padding:0 7px;white-space:nowrap}
+.think{position:absolute;left:0;top:118px;width:375px;height:694px}
+.think .sp{position:absolute;left:147px;top:70px;width:80px;height:80px}
+.think .tx{position:absolute;left:0;right:0;top:170px;text-align:center;font-size:19px;font-weight:800;color:var(--ink60)}
+.sk{position:absolute;left:14px;width:347px;height:136px;border-radius:20px;background:#fff;overflow:hidden}
+.sk i{position:absolute;left:0;top:0;width:180px;height:136px;background:linear-gradient(90deg,rgba(240,232,216,0),rgba(240,232,216,.95),rgba(240,232,216,0))}
+.sk b{position:absolute;left:96px;height:16px;border-radius:8px;background:#F3EADC}
+.sk em{position:absolute;left:18px;top:30px;width:64px;height:64px;border-radius:18px;background:#F3EADC}
+.sum{position:absolute;left:22px;top:132px;width:331px;font-size:14px;font-weight:700;color:var(--muted);line-height:20px}
+.rc{position:absolute;left:14px;width:347px;height:146px;border-radius:20px;background:#fff;border:2.5px solid transparent;box-sizing:border-box;box-shadow:0 8px 20px -12px rgba(26,12,4,.3);transform-origin:50% 50%}
+.rc .em{position:absolute;left:16px;top:24px;width:72px;height:72px;border-radius:20px;background:var(--primary-subtle);font-size:42px;text-align:center;line-height:72px}
+.rc .nm{position:absolute;left:104px;top:20px;font-size:22px;font-weight:900;white-space:nowrap}
+.rc .mt{position:absolute;left:104px;top:54px;font-size:15px;font-weight:700;color:var(--muted);white-space:nowrap}
+.rc .mt b{color:#E0A100}
+.rc .tg{position:absolute;left:104px;top:88px;height:30px;border-radius:15px;background:var(--cream);font-size:14px;font-weight:800;color:var(--ink60);line-height:30px;padding:0 12px;white-space:nowrap}
+.rc .ok{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;background:var(--primary);transform-origin:50% 50%}
+.rc .ok:after{content:"";position:absolute;left:12px;top:7px;width:8px;height:15px;border-right:3.5px solid #fff;border-bottom:3.5px solid #fff;transform:rotate(45deg)}
+.rc.sel{border-color:var(--primary)}
+
+/* ── map things ── */
+.bub{position:absolute;left:0;top:0;height:96px;border-radius:48px;background:#fff;box-shadow:0 18px 36px -16px rgba(26,12,4,.4);font-size:34px;font-weight:900;line-height:96px;padding:0 36px 0 104px;white-space:nowrap;transform-origin:100% 100%}
+.bub b{position:absolute;left:14px;top:14px;width:68px;height:68px;border-radius:50%;background:var(--primary);color:#fff;font-size:30px;text-align:center;line-height:68px}
+.bub.idea{background:var(--primary);color:#fff}
+.bub.idea b{background:var(--secondary)}
+.bub.idea b svg{position:absolute;left:14px;top:12px;width:40px;height:44px}
+.ray{position:absolute;width:8px;height:26px;border-radius:4px;background:var(--secondary);transform-origin:50% 100%}
+.pill{position:absolute;left:0;top:0;width:470px;height:84px;border-radius:42px;background:var(--primary);color:#fff;font-size:27px;font-weight:900;line-height:84px;white-space:nowrap;overflow:hidden;transform-origin:50% 50%;box-shadow:0 22px 44px -18px rgba(194,85,26,.6)}
+.pill .ic{position:absolute;left:20px;top:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22)}
+.pill .ic svg{position:absolute;left:10px;top:10px;width:24px;height:24px}
+.pill .tx{position:absolute;left:80px;top:0}
+#card{left:0;top:0;width:760px;height:540px;background:#fff;border-radius:34px;box-shadow:0 50px 110px -40px rgba(26,12,4,.42);transform-origin:0 0}
+#card h3{position:absolute;left:40px;top:34px;margin:0;font-size:38px;font-weight:900}
+#card .cnt{position:absolute;right:40px;top:46px;font-size:24px;font-weight:800;color:var(--muted)}
+.rk{position:absolute;left:20px;width:720px;height:118px;border-radius:22px}
+.rk .no{position:absolute;left:20px;top:16px;width:44px;height:44px;border-radius:50%;background:var(--ink);color:#fff;font-size:23px;font-weight:900;text-align:center;line-height:44px}
+.rk .dt{position:absolute;left:82px;top:10px;font-size:36px;font-weight:900;white-space:nowrap}
+.rk .ct{position:absolute;right:20px;top:18px;font-size:26px;font-weight:900;white-space:nowrap}
+.rk .ct span{margin-left:16px}
+.rk .bar{position:absolute;left:20px;top:78px;width:680px;height:22px;border-radius:11px;background:var(--border);overflow:hidden}
+.rk .seg{position:absolute;top:0;height:22px;width:170px;transform-origin:0 50%}
+.rk .best{position:absolute;right:16px;top:-22px;height:38px;border-radius:19px;background:var(--primary);color:#fff;font-size:20px;font-weight:900;line-height:38px;padding:0 16px;transform-origin:100% 100%;box-shadow:0 6px 14px -6px rgba(194,85,26,.6)}
+#glow{position:absolute;left:0;top:0;border-radius:26px;border:5px solid var(--primary);box-shadow:0 0 0 9px rgba(224,104,40,.14),0 0 44px rgba(224,104,40,.35);box-sizing:border-box}
+#chip{position:absolute;left:0;top:0;border-radius:22px;background:#fff;border:5px solid var(--primary);box-sizing:border-box;overflow:hidden;box-shadow:0 30px 60px -24px rgba(26,12,4,.45)}
+#chip .c{position:absolute;left:0;right:0;top:50%;margin-top:-24px;text-align:center;font-size:36px;font-weight:900;line-height:48px;white-space:nowrap}
+.dot{position:absolute;left:0;top:0;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;box-shadow:0 10px 20px -6px rgba(26,12,4,.4)}
+.dot svg{position:absolute;left:15px;top:15px;width:28px;height:28px}
+#pin{position:absolute;left:0;top:0;transform-origin:50% 50%}
+#pin .body{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:999px;background:var(--primary);box-shadow:0 26px 40px -18px rgba(194,85,26,.75)}
+#pin .face{position:absolute;left:50%;top:50%;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;background:#fff;font-size:58px;text-align:center;line-height:96px}
+#pin .cal{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px}
+#final{position:absolute;left:0;top:0;background:#fff;border:4px solid var(--primary);box-sizing:border-box;overflow:hidden;box-shadow:0 50px 110px -40px rgba(26,12,4,.45)}
+#final .sm,#final .bg{position:absolute;left:0;top:0;transform-origin:0 0}
+#final .sm{width:347px;height:146px}
+#final .sm .em{position:absolute;left:16px;top:24px;width:72px;height:72px;border-radius:20px;background:var(--primary-subtle);font-size:42px;text-align:center;line-height:72px}
+#final .sm .nm{position:absolute;left:104px;top:20px;font-size:22px;font-weight:900;white-space:nowrap}
+#final .sm .mt{position:absolute;left:104px;top:54px;font-size:15px;font-weight:700;color:var(--muted);white-space:nowrap}
+#final .sm .tg{position:absolute;left:104px;top:88px;height:30px;border-radius:15px;background:var(--cream);font-size:14px;font-weight:800;color:var(--ink60);line-height:30px;padding:0 12px;white-space:nowrap}
+#final b{color:#E0A100}
+#final .bg{width:760px;height:520px}
+#final .band{position:absolute;left:0;top:0;width:760px;height:92px;background:var(--primary);color:#fff;font-size:38px;font-weight:900;line-height:92px;padding-left:40px;box-sizing:border-box}
+#final .em2{position:absolute;left:40px;top:128px;width:150px;height:150px;border-radius:38px;background:var(--primary-subtle);font-size:96px;text-align:center;line-height:150px}
+#final .nm2{position:absolute;left:220px;top:132px;font-size:54px;font-weight:900;white-space:nowrap}
+#final .mt2{position:absolute;left:222px;top:208px;font-size:26px;font-weight:700;color:var(--muted);white-space:nowrap}
+#final .tg2{position:absolute;left:222px;top:250px;height:40px;border-radius:20px;background:var(--cream);font-size:20px;font-weight:800;color:var(--ink60);line-height:40px;padding:0 16px;white-space:nowrap}
+#final .hr{position:absolute;left:40px;top:322px;width:680px;height:2px;background:var(--border)}
+#final .lb2{position:absolute;left:40px;top:352px;font-size:24px;font-weight:800;color:var(--muted)}
+#final .dt2{position:absolute;left:40px;top:388px;font-size:58px;font-weight:900}
+#final .ok2{position:absolute;right:40px;top:402px;height:56px;border-radius:28px;background:var(--success);color:#fff;font-size:26px;font-weight:900;line-height:56px;padding:0 24px}
+.bang{position:absolute;left:0;top:0;width:66px;height:66px;margin:-33px 0 0 -33px;border-radius:50%;background:var(--primary);color:#fff;font-size:42px;font-weight:900;text-align:center;line-height:66px;box-shadow:0 10px 22px -8px rgba(194,85,26,.6);transform-origin:50% 50%}
+.dingtag{position:absolute;left:0;top:0;height:70px;border-radius:35px;background:#fff;color:var(--primary);font-size:34px;font-weight:900;line-height:70px;padding:0 26px;white-space:nowrap;box-shadow:0 14px 30px -14px rgba(26,12,4,.4);transform-origin:100% 100%}
+#pinlab{position:absolute;left:0;top:0;height:60px;border-radius:30px;background:var(--ink);color:#fff;font-size:27px;font-weight:900;line-height:60px;padding:0 24px;white-space:nowrap;transform-origin:50% 0}
+#pinring{position:absolute;left:0;top:0;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:5px solid var(--primary);box-sizing:border-box}
+#mark{left:1790px;top:1059px;font-size:150px;font-weight:900;line-height:160px;letter-spacing:.04em;white-space:nowrap}
+#mark span{display:inline-block;transform-origin:50% 90%}
+#tagl{left:0;top:1267px;width:3840px;text-align:center;font-size:38px;font-weight:800;color:var(--ink60);letter-spacing:.06em;white-space:nowrap}
+#tagl span{display:inline-block}
+#tagl i{font-style:normal;color:var(--primary);margin:0 .3em}
+
+/* ── screen space ── */
+#cap{position:absolute;left:0;bottom:40px;height:168px;width:540px;overflow:hidden;background:linear-gradient(to right,rgba(255,255,255,.97) 86%,rgba(255,255,255,0))}
+#cap .row{position:absolute;left:40px;top:14px;width:480px;height:150px;text-align:left;white-space:nowrap}
+#cap .n{display:inline-block;width:68px;height:68px;border-radius:50%;background:var(--primary);color:#fff;font-size:29px;font-weight:900;text-align:center;line-height:68px;vertical-align:14px;margin-right:18px}
+#cap .w{display:inline-block;font-size:60px;font-weight:900;letter-spacing:.03em;line-height:90px}
+#cap .s{display:block;font-size:25px;font-weight:700;color:var(--muted);margin-top:2px}
+#who{left:auto !important;right:40px;top:40px !important}
+#bleed{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#hud{position:absolute;right:14px;bottom:10px;font:14px monospace;color:#c00;display:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="ground" width="3840" height="2160"></canvas>
+  <div id="bleed"></div>
+  <div id="world">
+    <div id="tiles"></div>
+    <div id="ttags"></div>
+    <div id="phones"></div>
+    <div id="bubbles"></div>
+    <div id="card" class="a"><div id="glow"></div><div id="cardIn"></div></div>
+    <div id="chip"><div class="c">10/4 (日) 18:00</div></div>
+    <div id="dots"></div>
+    <div id="pills"></div>
+    <div id="final"><div class="sm"><div class="em">🥩</div><div class="nm">職人炭火燒肉</div><div class="mt"><b>★ 4.6</b> · $$ · 大安區 · 1.2 km</div><div class="tg">亞洲料理．獨立包廂</div></div>
+      <div class="bg"><div class="band">就決定是這間！</div><div class="em2">🥩</div><div class="nm2">職人炭火燒肉</div><div class="mt2"><b>★ 4.6</b> · $$ · 大安區 · 1.2 km</div><div class="tg2">亞洲料理．獨立包廂</div>
+        <div class="hr"></div><div class="lb2">時間</div><div class="dt2">10/4 (日) 18:00</div><div class="ok2">4 人都可以 ✓</div></div></div>
+    <div id="ding"><div class="dingtag">叮咚！</div><div class="bang">!</div><div class="bang">!</div><div class="bang">!</div></div>
+    <div id="pinring"></div>
+    <div id="pinlab">🥩 職人炭火燒肉</div>
+    <div id="pin"><div class="body"></div><div class="face">🥩</div>
+      <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M8.5 15l2.5 2.5 4.5-4.5"/></svg></div>
+    <div id="mark" class="a"></div>
+    <div id="tagl" class="a"></div>
+  </div>
+  <div id="who" class="ttag" style="position:absolute"></div>
+  <div id="cap"></div>
+  <div id="hud"></div>
+</div>
+<script src="motion.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+//  0.0– 2.6  阿傑 at home: 「好久沒跟大家聚聚了…」 → 💡「對了！來揪一下！」 → taps 揪甘心
+//  2.6– 6.4  close on the title, then the calendar: two drags select 7 days; 產生連結          01 快速建立
+//  6.4– 8.3  pull out over the map; the link crosses to the office, the MRT, the café
+//  8.3–11.7  小明 votes (office) · whip to Lily △ (MRT) · wide as everyone sends             02 快速投票
+// 11.7–14.8  the answers cross the map into the ranking; hold on the best slot               03 自動彙整
+// 14.8–23.2  the slot returns to 阿傑 → AI 推薦餐廳 → preferences → AI → pick; the pin drops in
+//            the middle and every phone is told; read it on 小明's phone                     04 AI 選餐廳
+// 23.2–28.0  the pin folds into the badge, 揪甘心, tagline, hold
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+const DUR=31.5;
+window.__meta={dur:DUR,fps:30,w:1920,h:1080,
+  inFrame:{card:[13.45,14.95,'whole'], final:[22.2,23.95,'whole'], mark:[29.5,31.5,'whole']}};
+const {clamp,lerp,seg,sstep,ssstep,spring,spline,ease}=OM;
+const $=id=>document.getElementById(id);
+const fx=v=>v.toFixed(2);
+
+// ── content ──
+const TITLE='八月好友暑期歡聚小酌隊';
+const SLOTS=[{day:'10/4 (日)',tm:'12:00'},{day:'10/4 (日)',tm:'18:00'},{day:'10/5 (一)',tm:'18:00'}];
+const RANK=[1,2,0];
+const PEOPLE=[ // demo-gathering's four and their real answers; 阿傑 is the host
+  {name:'小明',      av:'明', col:'#3B82F6', place:'辦公室', v:'AAA', x:960,  y:600,  scene:'office', skin:'#F2C9A5', sleeve:'#2F4A7A'},
+  {name:'Lily',      av:'L',  col:'#2A9D8F', place:'捷運上', v:'IAA', x:2880, y:600,  scene:'mrt',    skin:'#F6D2B6', sleeve:'#2F7F74'},
+  {name:'陳大華',    av:'華', col:'#A0673F', place:'咖啡廳', v:'UAA', x:960,  y:1740, scene:'cafe',   skin:'#C98E66', sleeve:'#7A4E30'},
+  {name:'阿傑',      av:'傑', col:'#e06828', place:'家裡',   v:'AAA', x:2880, y:1740, scene:'home',   skin:'#E8B48C', sleeve:'#6B6B73'},
+];
+const VOTER_NAME=['小明','Lily 莉莉','陳大華','主揪阿傑'];
+const HOST=3, HUB={x:1920,y:1170};
+const REST=[
+  {em:'🥩',nm:'職人炭火燒肉',r:'4.6',p:'$$',a:'大安區',d:'1.2 km',tg:'亞洲料理．獨立包廂'},
+  {em:'🍝',nm:'好時光義式餐酒館',r:'4.5',p:'$$$',a:'中山區',d:'800 m',tg:'西式料理．氣氛輕鬆'},
+  {em:'🍱',nm:'山葵日式割烹',r:'4.7',p:'$$$',a:'信義區',d:'2.0 km',tg:'日式料理．安靜舒適'},
+];
+const VCOL={A:'#5A9E5A',I:'#F59E0B',U:'#9B8870'};
+const SVG={
+  A:c=>`<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="${c}" stroke-width="2.8"/></svg>`,
+  I:c=>`<svg viewBox="0 0 20 20"><path d="M10 3 L17.5 16.5 L2.5 16.5 Z" fill="none" stroke="${c}" stroke-width="2.6" stroke-linejoin="round"/></svg>`,
+  U:c=>`<svg viewBox="0 0 20 20"><path d="M4 4 L16 16 M16 4 L4 16" stroke="${c}" stroke-width="2.8" stroke-linecap="round"/></svg>`,
+  link:`<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>`,
+  spark:c=>`<svg viewBox="0 0 24 24" fill="${c}"><path d="M12 1.5l2.2 6.3 6.3 2.2-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-2.2z"/><path d="M19 15l1 2.6 2.6 1-2.6 1L19 22.2l-1-2.6-2.6-1 2.6-1z" opacity=".8"/></svg>`,
+  cal:`<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>`,
+  bulb:`<svg viewBox="0 0 24 26" fill="none" stroke="#1A0C04" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z" fill="#fff"/><path d="M9 21.5h6M10 24.5h4"/></svg>`,
+};
+
+// ════════════════════════════ beats ════════════════════════════
+const T={ BUB1:0.30, BUB2:1.20, ICON:1.80, OPEN:1.90, TITLE_TAP:2.55, TYPE0:2.70, CPS:16,
+  DRAGS:[{t:4.20,t2:4.80,r:0,c0:0,c1:3},{t:5.10,t2:5.40,r:1,c0:0,c1:2}], GO:6.00, PILL0:6.05, PILL1:6.40, ROUTE0:6.60, ROUTE1:7.75,
+  IRIS:7.80, HOSTVOTE:7.80, CARD_IN:11.70, BEST:13.80, CHIP0:15.0, CHIP1:15.90, FINAL:15.40, AIIN:16.20, GLINT:16.50, AIBTN:17.40, AISCR:17.55,
+  CHIPS:[18.0,18.3,18.6], AUTO:18.45, START:19.20, THINK:19.30, RESULTS:20.10, PICK:21.00, FIN0:21.30, FIN1:22.20, PIN0:24.00, PINLAND:24.35,
+  NOTIFY:24.40, DING:26.30, FOLD0:28.30, FOLD1:29.00, MARK:28.85, TAG:29.05 };
+const TAPS=[
+  {tap:[9.00,9.30,9.60], sub:9.90},
+  {tap:[10.50,9.60,9.90], sub:10.80},   // Lily: rows 2 and 3 before the camera arrives, the △ on camera
+  {tap:[10.20,10.50,10.80], sub:11.10},
+  {tap:[9.90,10.20,10.50], sub:11.40},
+];
+const LAUNCH=(k,r)=>11.85+k*0.11+r*0.05, DOT_D=0.78;
+
+// ════════════════════════════ geometry ════════════════════════════
+const PS=0.8, PW=375*PS, PH=812*PS;
+const phoneO=k=>({x:PEOPLE[k].x-PW/2, y:PEOPLE[k].y-PH/2});
+const pw=(k,lx,ly)=>{ const o=phoneO(k); return {x:o.x+lx*PS, y:o.y+ly*PS}; };
+const tileO=k=>({x:PEOPLE[k].x-500, y:PEOPLE[k].y-500});
+const SLOTY=[256,386,516], BX={A:190,I:252,U:314};
+const btnC=(r,s)=>({x:BX[s], y:SLOTY[r]+59});
+const DATEC=(r,c)=>({x:40+c*49, y:372+r*58});
+const CARD={x:HUB.x-380,y:HUB.y-270,w:760,h:540}, RK_TOP=118, RK_H=134;
+const RC_TOP=[176,338,500];
+const ICON={x:232,y:254};
+// when each date is painted by the drag
+const DATE_ON={}; T.DRAGS.forEach(D=>{ for(let c=D.c0;c<=D.c1;c++) DATE_ON[D.r*7+c]=D.t+(D.t2-D.t)*(c-D.c0)/(D.c1-D.c0); });
+
+// ════════════════════════════ scenes ════════════════════════════
+const SCENES={
+ home:{bg:'#FCDDC2', svg:`
+  <defs><radialGradient id="lampg"><stop offset="0" stop-color="#FFD98A" stop-opacity=".55"/><stop offset="1" stop-color="#FFD98A" stop-opacity="0"/></radialGradient></defs>
+  <rect x="40" y="170" width="190" height="250" rx="16" fill="#2F3B5E"/><circle cx="96" cy="228" r="24" fill="#FFF1C2"/>
+  <circle cx="178" cy="210" r="3" fill="#fff"/><circle cx="160" cy="300" r="2.5" fill="#fff"/><circle cx="72" cy="350" r="2.5" fill="#fff"/>
+  <path d="M135 170v250M40 295h190" stroke="#F7D9BE" stroke-width="10"/>
+  <circle cx="622" cy="270" r="190" fill="url(#lampg)"/><rect x="616" y="240" width="10" height="640" fill="#7A5A44"/>
+  <path d="M560 165h124l-26 80h-72z" fill="#FFD27A"/>
+  <rect x="34" y="640" width="70" height="80" rx="10" fill="#C46A3C"/><ellipse cx="54" cy="610" rx="18" ry="44" fill="#6FA36A" transform="rotate(-20 54 610)"/><ellipse cx="86" cy="604" rx="18" ry="46" fill="#7DB477" transform="rotate(18 86 604)"/>
+  <rect x="-30" y="780" width="760" height="300" rx="70" fill="#E58B5B"/><rect x="20" y="720" width="300" height="150" rx="40" fill="#EE9E72"/><rect x="380" y="720" width="300" height="150" rx="40" fill="#EE9E72"/>`},
+ office:{bg:'#D3E2F6', svg:`
+  <rect x="0" y="0" width="700" height="250" fill="#C8D6EA"/>${Array.from({length:11},(_,i)=>`<path d="M0 ${12+i*22}h700" stroke="#B5C6DD" stroke-width="3"/>`).join('')}
+  <rect x="26" y="330" width="230" height="160" rx="12" fill="#33435C"/><rect x="40" y="344" width="202" height="122" rx="6" fill="#5677A3"/>
+  <rect x="126" y="490" width="30" height="50" fill="#8C9BB0"/><rect x="92" y="536" width="98" height="12" rx="6" fill="#8C9BB0"/>
+  <rect x="566" y="320" width="74" height="74" fill="#FFE27A" transform="rotate(6 603 357)"/><rect x="590" y="420" width="70" height="70" fill="#FFB8C6" transform="rotate(-5 625 455)"/>
+  <rect x="0" y="806" width="700" height="180" fill="#B6C7DC"/><rect x="0" y="800" width="700" height="18" fill="#A3B6CF"/>
+  <rect x="452" y="840" width="226" height="56" rx="10" fill="#F4F7FB"/>
+  <rect x="36" y="712" width="74" height="88" rx="12" fill="#fff"/><path d="M110 735a22 22 0 0 1 0 40" stroke="#fff" stroke-width="10" fill="none"/>
+  <path d="M58 690q-10-18 0-36M84 690q-10-18 0-36" stroke="#9FB3CC" stroke-width="5" fill="none" stroke-linecap="round"/>`},
+ mrt:{bg:'#CBEAE1', svg:`
+  <rect x="0" y="170" width="700" height="330" fill="#A6D4E8"/>
+  <g id="skyFar">${skyline(0,'#C6E4EF',3,150)}${skyline(700,'#C6E4EF',3,150)}</g>
+  <g id="skyNear">${skyline(0,'#7FB2C8',7,90)}${skyline(700,'#7FB2C8',7,90)}</g>
+  <rect x="226" y="170" width="18" height="330" fill="#EAF5F1"/><rect x="470" y="170" width="18" height="330" fill="#EAF5F1"/>
+  <rect x="0" y="160" width="700" height="14" fill="#EAF5F1"/><rect x="0" y="496" width="700" height="14" fill="#EAF5F1"/>
+  <rect x="0" y="66" width="700" height="12" rx="6" fill="#BFC8CB"/>
+  ${[90,250,420,560].map((x,i)=>`<g class="strap" data-i="${i}" transform="rotate(0 ${x} 72)"><rect x="${x-3}" y="72" width="6" height="60" fill="#E2B93B"/><rect x="${x-20}" y="128" width="40" height="40" rx="20" fill="none" stroke="#F5C842" stroke-width="8"/></g>`).join('')}
+  <rect x="650" y="0" width="14" height="980" fill="#BFC8CB"/>
+  <rect x="-20" y="700" width="740" height="120" rx="40" fill="#4E957C"/><rect x="-20" y="780" width="740" height="230" rx="40" fill="#5DA68C"/>`},
+ cafe:{bg:'#F1DAC0', svg:`
+  <defs><radialGradient id="cafeg"><stop offset="0" stop-color="#FFD98A" stop-opacity=".5"/><stop offset="1" stop-color="#FFD98A" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="150" cy="150" r="150" fill="url(#cafeg)"/><circle cx="560" cy="120" r="130" fill="url(#cafeg)"/>
+  <path d="M150 0v100M560 0v70" stroke="#3D2B22" stroke-width="4"/><path d="M95 140a55 44 0 0 1 110 0z" fill="#3D2B22"/><path d="M510 110a50 40 0 0 1 100 0z" fill="#3D2B22"/>
+  <rect x="440" y="250" width="226" height="180" rx="12" fill="#3A3934" stroke="#8A5A3C" stroke-width="8"/>
+  <text x="553" y="300" text-anchor="middle" font-size="30" font-weight="800" fill="#F3EFE6" font-family="-apple-system">MENU</text>
+  <path d="M470 330h120M470 360h150M470 390h100" stroke="#F3EFE6" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/>
+  <rect x="0" y="790" width="700" height="28" fill="#A8744F"/><rect x="0" y="816" width="700" height="170" fill="#8A5A3C"/>
+  <ellipse cx="575" cy="790" rx="74" ry="14" fill="#fff"/><rect x="530" y="712" width="92" height="76" rx="16" fill="#fff"/><ellipse cx="576" cy="716" rx="40" ry="9" fill="#C99A68"/>
+  <path d="M624 735a20 20 0 0 1 0 34" stroke="#fff" stroke-width="9" fill="none"/>
+  <path d="M40 790q50-70 120-10q-60-20-120 10z" fill="#E0A458"/>`},
+};
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function skyline(off,col,seed,base){ const r=OM.rng(seed); let x=off, s=''; while(x<off+700){ const w=40+r()*70, h=base+r()*150; s+=`<rect x="${x.toFixed(0)}" y="${(500-h).toFixed(0)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" fill="${col}"/>`; x+=w+6+r()*14; } return s; }
+// rebuild after skyline is defined (template literals above ran before it existed for mrt) — so build lazily
+function sceneSVG(k){ const S=SCENES[k]; return `<svg class="scene" viewBox="0 0 700 980" preserveAspectRatio="xMidYMid slice"><rect x="-400" y="-400" width="1500" height="1780" fill="${S.bg}"/><g class="props">${S.svg}</g></svg>`; }
+
+// ════════════════════════════ build ════════════════════════════
+function el(tag,cls,html,parent){ const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; if(parent) parent.appendChild(e); return e; }
+const plate=(P,k)=>`<b style="background:${P.col}"></b>${P.name}<em>· ${P.place}</em>${k===HOST?'<span class="role host">主揪</span>':'<span class="role">被揪</span>'}`;
+const tiles=PEOPLE.map((P,k)=>{ const t=el('div','tile',sceneSVG(P.scene),$('tiles')); const o=tileO(k); t.style.transform=`translate(${o.x}px,${o.y}px)`;
+  const tag=el('div','ttag',plate(P,k),$('ttags')); tag.style.transformOrigin='0 100%';
+  return {el:t, props:t.querySelector('.props'), tag, skyFar:t.querySelector('#skyFar'), skyNear:t.querySelector('#skyNear'), straps:[...t.querySelectorAll('.strap')]}; });
+const handBack=P=>`<svg class="hand" style="left:-140px;top:360px;width:655px;height:665px;overflow:hidden" viewBox="-140 360 655 665">
+  <rect x="-170" y="930" width="470" height="300" rx="50" fill="${P.sleeve}" transform="rotate(-10 60 1000)"/>
+  <path d="M-36 560 Q-70 840 70 940 L300 950 Q410 870 400 640 L400 520 L362 500 L-6 520 Z" fill="${P.skin}"/></svg>`;
+const handFront=P=>`<svg class="hand" style="left:-140px;top:360px;width:655px;height:760px" viewBox="-140 360 655 760">
+  ${[470,540,610].map(y=>`<rect x="358" y="${y}" width="50" height="60" rx="25" fill="${P.skin}" stroke="rgba(26,12,4,.1)" stroke-width="2"/>`).join('')}
+  <rect x="-40" y="600" width="66" height="120" rx="33" fill="${P.skin}" stroke="rgba(26,12,4,.1)" stroke-width="2" transform="rotate(-16 -7 660)"/></svg>`;
+const phones=PEOPLE.map((P,k)=>{
+  const ph=el('div','phone','',$('phones'));
+  ph.insertAdjacentHTML('beforeend',handBack(P));
+  el('div','fr','',ph); const sc=el('div','sc','',ph); el('div','island','',sc);
+  ph.insertAdjacentHTML('beforeend',handFront(P));
+  const off=el('div','off','<div class="dt">10月2日 星期五</div><div class="clk">20:41</div>',sc);
+  const vote=el('div','scr',`<div class="hd"><div class="k">揪甘心邀請你</div><div class="t">${TITLE}</div></div>
+    <div class="who"><b style="background:${P.col}">${P.av}</b>${VOTER_NAME[k]}</div>
+    <div class="q" style="top:206px">你哪時有空？</div>`+SLOTS.map((S,r)=>`<div class="slot" style="top:${SLOTY[r]}px"><div class="d">${S.day}</div><div class="h">${S.tm}</div>
+      ${['A','I','U'].map(s=>`<div class="vb" data-s="${s}" style="left:${BX[s]-14-28}px">${SVG[s]('#9B8870')}</div>`).join('')}</div>`).join('')+`<div class="btn">送出</div>`,sc);
+  const o={el:ph,sc,off,vote,sub:vote.querySelector('.btn'),
+    btn:[...vote.querySelectorAll('.slot')].map(sl=>{ const b={}; sl.querySelectorAll('.vb').forEach(x=>b[x.dataset.s]=x); return b; })};
+  if(k===HOST){
+    const cols=['#9BB7D4','#A8D5BA','#F2C57C','#D7A9E3','#F4A6A6','#B5C7A3','#9AD0E0','#E8B98A','#C9B6E4','#A3C9C1','#F0B7A4'];
+    let icons='', n=0; for(let r=0;r<3;r++) for(let c=0;c<4;c++){ const cx=60+c*86, cy=142+r*112;
+      if(r===1&&c===2){ icons+=`<div class="ap" style="left:${cx-32}px;top:${cy-32}px;background:var(--primary);display:flex;align-items:center;justify-content:center" id="jicon">${SVG.cal}</div><div class="apl" style="left:${cx-43}px;top:${cy+38}px;color:#1A0C04;font-weight:900">揪甘心</div>`; }
+      else icons+=`<div class="ap" style="left:${cx-32}px;top:${cy-32}px;background:${cols[n++%cols.length]}"></div>`; }
+    o.home=el('div','home',`<div class="ck">20:41</div>${icons}`,sc);
+    o.create=el('div','scr',`<div class="hd"><div class="k">揪甘心</div><div class="t">建立新揪團</div></div>
+      <div class="q" style="top:150px">揪什麼？</div><div class="fld" id="fld"></div>
+      <div class="q" style="top:276px">哪幾天？<span style="color:var(--ink);margin-left:10px">10 月</span></div>
+      ${'日一二三四五六'.split('').map((d,i)=>`<div class="wkd" style="left:${16+i*49}px">${d}</div>`).join('')}
+      <div class="trail" id="trail"></div><div id="dcs"></div><div class="cnt7" id="cnt7"></div><div class="hint">按住拖拉，一次選好多天</div>
+      <div class="btn" id="gobtn">產生連結</div>`,sc);
+    o.fin=el('div','scr',`<div class="hd"><div class="k">揪甘心</div><div class="t">${TITLE}</div></div>
+      <div class="big fin" id="finc" style="top:150px;height:190px"><div class="lbl">✓ 已敲定時間</div><div class="d">10/4 (日)</div><div class="h">18:00</div><div class="n">4 人都可以</div></div>
+      <div class="aib" id="aib"><div class="halo" id="halo"></div><div class="clip"><div class="gl" id="glint"></div></div>${SVG.spark('#fff')}<div class="t">AI 推薦餐廳</div><div class="s">幫你挑一間大家都適合的</div></div>`,sc);
+    o.ai=el('div','scr',`<div class="ah"><div style="position:absolute;left:22px;top:66px;width:30px;height:30px">${SVG.spark('#e06828')}</div><div style="position:absolute;left:60px;top:64px;font-size:24px;font-weight:900">AI 推薦餐廳</div></div><div id="aiBody"></div>`,sc);
+  }
+  o.banner=el('div','banner',`<div class="ic">🥩</div><div class="a1">揪甘心 · 已訂好地點</div><div class="a2">10/4 18:00 職人炭火燒肉</div>`,sc);
+  o.finger=el('div','finger','',sc); o.rip=el('div','ripple','',sc);
+  return o;
+});
+const H=phones[HOST];
+const dcEls=[]; for(let r=0;r<2;r++) for(let c=0;c<7;c++){ const d=4+r*7+c, p=DATEC(r,c); const e=el('div','dc'+(c===0||c===6?' we':''),d,$('dcs')); e.style.left=p.x+'px'; e.style.top=p.y+'px'; dcEls.push(e); }
+$('aiBody').innerHTML=`<div id="pref">
+   <div class="sl" style="top:136px">與會關係</div>${['同事','朋友','家人','社團'].map((c,i)=>`<div class="ch" data-c="${c}" style="left:${14+i*80}px;top:166px;width:72px">${c}</div>`).join('')}
+   <div class="sl" style="top:232px">預算（每人）</div>${['200-400','400-600','600-800'].map((c,i)=>`<div class="ch" data-c="${c}" style="left:${14+i*108}px;top:262px;width:100px">${c}</div>`).join('')}
+   <div class="sl" style="top:328px">人數</div>${['2 人','3-4 人','5-8 人'].map((c,i)=>`<div class="ch" data-c="${c}" style="left:${[14,94,202][i]}px;top:358px;width:${[72,100,90][i]}px">${c}${c==='3-4 人'?'<span class="auto">自動帶入</span>':''}</div>`).join('')}
+   <div class="sl" style="top:424px">情境</div>${['可久坐','有插座','停車位'].map((c,i)=>`<div class="ch" data-c="${c}" style="left:${14+i*104}px;top:454px;width:96px">${c}</div>`).join('')}
+   <div class="btn" id="startbtn" style="background:linear-gradient(110deg,#e06828,#f08950 60%,#ffc94a)">✨ 開始推薦</div></div>
+ <div class="think" id="think"><div class="sp" id="spk">${SVG.spark('#e06828')}</div><div class="tx">AI 正在依大家的需求挑選…</div>
+   ${[0,1,2].map(i=>`<div class="sk" style="top:${230+i*150}px"><em></em><b style="top:40px;width:150px"></b><b style="top:72px;width:200px"></b><i></i></div>`).join('')}</div>
+ <div id="res"><div class="sum">依「朋友・400-600・3-4 人・可久坐」推薦，適合 4 人聚餐</div>
+   ${REST.map((R,i)=>`<div class="rc" style="top:${RC_TOP[i]}px"><div class="em">${R.em}</div><div class="nm">${R.nm}</div>
+     <div class="mt"><b>★ ${R.r}</b> · ${R.p} · ${R.a} · ${R.d}</div><div class="tg">${R.tg}</div>${i===0?'<div class="ok"></div>':''}</div>`).join('')}</div>`;
+const chipEls={}; $('pref').querySelectorAll('.ch').forEach(e=>chipEls[e.dataset.c]=e);
+const rcEls=[...$('res').querySelectorAll('.rc')], skEls=[...$('think').querySelectorAll('.sk')];
+
+// the idea
+const bub1=el('div','bub','<b>傑</b>好久沒跟大家聚聚了…',$('bubbles'));
+const bub2=el('div','bub idea',`<b>${SVG.bulb}</b>對了！來揪一下！`,$('bubbles'));
+const rays=[0,1,2,3,4].map(()=>el('div','ray','',$('bubbles')));
+
+const pillHTML=`<div class="ic">${SVG.link}</div><div class="tx">${TITLE}</div>`;
+const pill=el('div','pill',pillHTML,$('pills')), pillc=[0,1,2].map(()=>el('div','pill',pillHTML,$('pills')));
+
+$('cardIn').innerHTML=`<h3>最佳時段</h3><div class="cnt" id="cnt"></div>`+RANK.map((si,j)=>{ const S=SLOTS[si];
+  return `<div class="rk" style="top:${RK_TOP+j*RK_H}px"><div class="no">${j+1}</div><div class="dt">${S.day} ${S.tm}</div>
+    <div class="ct"><span style="color:${VCOL.A}">○ <b class="cA">0</b></span><span style="color:${VCOL.I}">△ <b class="cI">0</b></span><span style="color:${VCOL.U}">✕ <b class="cU">0</b></span></div>
+    <div class="bar">${[0,1,2,3].map(q=>`<div class="seg" style="left:${q*170}px"></div>`).join('')}</div>${j===0?'<div class="best" id="best">最多人可以</div>':''}</div>`; }).join('');
+const rkEls=[...$('cardIn').querySelectorAll('.rk')];
+const DOTS=[];
+RANK.forEach((si,j)=>{ const order=PEOPLE.map((P,k)=>({k,s:P.v[si]})); const pri={A:0,I:1,U:2}; order.sort((a,b)=>pri[a.s]-pri[b.s]||a.k-b.k);
+  order.forEach((o,q)=>DOTS.push({k:o.k,r:si,j,q,s:o.s,t0:LAUNCH(o.k,si)})); });
+DOTS.forEach(D=>{ D.el=el('div','dot',SVG[D.s]('#fff'),$('dots')); D.el.style.background=VCOL[D.s]; D.seg=rkEls[D.j].querySelectorAll('.seg')[D.q]; D.seg.style.background=VCOL[D.s]; });
+
+const markL=[...'揪甘心'].map(ch=>el('span','',ch,$('mark')));
+$('tagl').innerHTML=['快速建立','快速投票','自動彙整','AI 選餐廳'].map(w=>`<span>${w}</span>`).join('<i>·</i>');
+const taglS=[...$('tagl').querySelectorAll('span')], taglI=[...$('tagl').querySelectorAll('i')];
+
+const CAPS=[{t:2.40,n:'01',w:'快速建立',s:'按住拖拉，一次選好多天'},
+            {t:8.40,n:'02',w:'快速投票',s:'大家在哪都能用自己的手機投'},
+            {t:11.70,n:'03',w:'自動彙整',s:'所有人的時間，自動排出最佳時段'},
+            {t:16.20,n:'04',w:'AI 選餐廳',s:'選好偏好，AI 推薦大家都適合的店'}];
+const CAP_OUT=27.95;
+$('cap').innerHTML=CAPS.map(c=>`<div class="row"><span class="n">${c.n}</span><span class="w">${c.w}</span><div class="s">${c.s}</div></div>`).join('');
+const capEls=[...$('cap').querySelectorAll('.row')];
+
+// ════════════════════════════ fingers (phone-local) ════════════════════════════
+// a gesture is a list of touches {t, x, y} or drags {t, x, y, t2, x2, y2}; the finger approaches from below and lifts away
+function fingerPath(G){ const K=[], a=G[0]; K.push({t:a.t-0.4,x:a.x+70,y:a.y+260});
+  G.forEach(g=>{ K.push({t:g.t-0.08,x:g.x+5,y:g.y+8},{t:g.t,x:g.x,y:g.y});
+    if(g.t2){ for(let i=1;i<=6;i++) K.push({t:lerp(g.t,g.t2,i/6),x:lerp(g.x,g.x2,i/6),y:lerp(g.y,g.y2,i/6)}); } else K.push({t:g.t+0.06,x:g.x,y:g.y}); });
+  const z=G[G.length-1], e=z.t2||z.t; K.push({t:e+0.45,x:(z.x2||z.x)+90,y:(z.y2||z.y)+300}); return K; }
+const tp=(t,x,y)=>({t,x,y});
+const FING=PEOPLE.map((P,k)=>{ const s=TAPS[k]; const L=s.tap.map((t,r)=>tp(t,btnC(r,P.v[r]).x,btnC(r,P.v[r]).y)).sort((a,b)=>a.t-b.t); L.push(tp(s.sub,214,745)); return [L]; });
+FING[HOST].unshift([tp(T.ICON,ICON.x,ICON.y)], [tp(T.TITLE_TAP,210,216)],
+  [...T.DRAGS.map(D=>{ const a=DATEC(D.r,D.c0), b=DATEC(D.r,D.c1); return {t:D.t,x:a.x,y:a.y,t2:D.t2,x2:b.x,y2:b.y}; }), tp(T.GO,214,745)]);
+FING[HOST].push([tp(T.AIBTN,200,420),tp(T.CHIPS[0],130,189),tp(T.CHIPS[1],172,285),tp(T.CHIPS[2],62,477),tp(T.START,214,745)],[tp(T.PICK,200,252)]);
+FING.forEach((list,k)=>{ FING[k]=list.map(G=>({G,path:fingerPath(G),a:G[0].t-0.4,b:(G[G.length-1].t2||G[G.length-1].t)+0.45})); });
+
+// ════════════════════════════ camera ════════════════════════════
+const WIDE={x:1920,y:1384,zoom:0.375};   // the map sits right, the left column stays clear for the step and the name
+const at=(k,ly)=>pw(k,187,ly);   // a phone-local row, in world
+const HUBV={x:1920,y:1185,zoom:1.3};
+const KEYS=[
+  {t:0.00, x:2730,y:1598,zoom:1.12},
+  {t:1.50, x:2740,y:1606,zoom:1.16, curve:ease.sineInOut},
+  {t:2.40, ...at(HOST,216), zoom:2.2, curve:ease.cubicInOut},          // into the title
+  {t:3.40, ...at(HOST,216), zoom:2.2},
+  {t:3.85, ...at(HOST,455), zoom:2.2, curve:ease.cubicInOut},          // the calendar
+  {t:5.85, ...at(HOST,455), zoom:2.2},
+  {t:6.50, x:2870,y:1510,zoom:1.05, curve:ease.cubicInOut},            // the link lifts
+  {t:7.50, ...WIDE, curve:ease.cubicInOut},                            // four places
+  {t:8.40, ...WIDE},
+  {t:8.85, ...at(0,517), zoom:2.05, curve:ease.cubicInOut},            // 小明, office
+  {t:9.95, ...at(0,517), zoom:2.05},
+  {t:10.35,...at(1,315), zoom:2.5,  curve:ease.expoInOut},             // whip to Lily, MRT
+  {t:10.55,...at(1,315), zoom:2.5},
+  {t:11.00,...at(1,480), zoom:1.6,  curve:ease.sineInOut},
+  {t:11.70,...WIDE, curve:ease.cubicInOut},
+  {t:12.55,...WIDE},
+  {t:13.40,...HUBV, curve:ease.cubicInOut},                            // the ranking
+  {t:15.00,...HUBV},
+  {t:15.95,...at(HOST,309), zoom:2.0, curve:ease.cubicInOut},          // back to 阿傑: 已敲定
+  {t:16.30,...at(HOST,309), zoom:2.0},
+  {t:16.90,...at(HOST,400), zoom:2.3, curve:ease.cubicInOut},          // lean into the AI button
+  {t:17.45,...at(HOST,400), zoom:2.3},
+  {t:17.90,...at(HOST,420), zoom:1.85,curve:ease.cubicInOut},          // preferences, header in frame
+  {t:19.30,...at(HOST,420), zoom:1.85},
+  {t:19.90,...at(HOST,380), zoom:1.85,curve:ease.sineInOut},           // results
+  {t:21.25,...at(HOST,380), zoom:1.85},
+  {t:22.15,...HUBV, curve:ease.cubicInOut},                            // the decision, in the middle
+  {t:24.00,...HUBV},
+  {t:24.80,...WIDE, curve:ease.cubicInOut},                            // sent to everyone
+  {t:25.55,...WIDE},
+  {t:26.20,...at(0,175), zoom:2.4, curve:ease.cubicInOut},             // read it on 小明's phone
+  {t:28.20,...at(0,175), zoom:2.4},
+  {t:28.95,x:1925,y:1165,zoom:1.28, curve:ease.cubicInOut},
+];
+const HITS=[[7.8,4,9],[24.35,6,9],[29.0,3,10]];
+// the operator's hand floats only over the map; every close-up holds dead still so the UI reads
+const handEnv=t=>sstep(6.2,6.6,t)*(1-sstep(8.3,8.7,t)) + sstep(11.0,11.4,t)*(1-sstep(12.9,13.3,t)) + sstep(24.4,24.8,t)*(1-sstep(25.3,25.6,t));
+function camAt(t){
+  const c=OM.camera(t,KEYS), e=handEnv(t)*3.0;
+  let x=c.x+e*(Math.sin(1.7*t)+0.6*Math.sin(2.9*t+1))/c.zoom, y=c.y+e*(Math.sin(1.3*t+2)+0.5*Math.sin(3.3*t))/c.zoom, rot=c.rot;
+  for(const [th,amp,decay] of HITS){ const s=OM.shake(t,th,{amp,decay,seed:Math.round(th*100)}); x+=s.x/c.zoom; y+=s.y/c.zoom; rot+=s.rot*0.4; }
+  return {x,y,zoom:c.zoom,rot};
+}
+
+// ════════════════════════════ map ════════════════════════════
+const G=$('ground').getContext('2d');
+const hsh=(a,b)=>{ let h=(a*374761393+b*668265263)|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; };
+const RIVER=[[-900,1180],[400,1060],[1300,1250],[2500,1080],[3500,1230],[4800,1000]];
+const route=(a,b,bend)=>{ const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1; return {a,b,c:{x:mx-dy/L*bend,y:my+dx/L*bend}}; };
+const qpt=(R,u)=>({x:(1-u)*(1-u)*R.a.x+2*(1-u)*u*R.c.x+u*u*R.b.x, y:(1-u)*(1-u)*R.a.y+2*(1-u)*u*R.c.y+u*u*R.b.y});
+const phoneTop=k=>({x:PEOPLE[k].x, y:PEOPLE[k].y-PH/2+40});
+const PILL_TOP={x:PEOPLE[HOST].x, y:PEOPLE[HOST].y-PH/2-70};
+const LINK_R=[0,1,2].map(k=>route(PILL_TOP,phoneTop(k),[-260,220,180][k]));
+const FOOD_R=[0,1,2,3].map(k=>route(HUB,phoneTop(k),[120,-120,-120,120][k]));
+function drawRoute(R,u1,alpha,col,w){ if(alpha<=0.003||u1<=0) return; G.save(); G.globalAlpha=alpha; G.strokeStyle=col; G.lineWidth=w; G.lineCap='round'; G.setLineDash([w*0.1,w*2.1]);
+  G.beginPath(); for(let i=0;i<=48;i++){ const p=qpt(R,u1*i/48); i?G.lineTo(p.x,p.y):G.moveTo(p.x,p.y);} G.stroke(); G.restore(); }
+function rr(x,y,w,h,r){ G.beginPath(); G.moveTo(x+r,y); G.arcTo(x+w,y,x+w,y+h,r); G.arcTo(x+w,y+h,x,y+h,r); G.arcTo(x,y+h,x,y,r); G.arcTo(x,y,x+w,y,r); G.closePath(); }
+function ground(t,VIEW,dim){
+  G.setTransform(2,0,0,2,0,0); G.fillStyle='#FFF8ED'; G.fillRect(0,0,1920,1080);
+  G.setTransform(...VIEW.map(v=>v*2));
+    LINK_R.forEach((R,k)=>drawRoute(R,ease.cubicInOut(seg(t,T.ROUTE0+k*0.3,T.ROUTE1+k*0.3)),(1-sstep(8.4,9.0,t))*0.9,'#e06828',16));
+  FOOD_R.forEach((R,k)=>drawRoute(R,ease.cubicInOut(seg(t,T.NOTIFY+k*0.15,T.NOTIFY+0.6+k*0.15)),(1-sstep(T.FOLD0,T.FOLD0+0.4,t))*0.9,'#e06828',16));
+  G.setTransform(2,0,0,2,0,0);
+  const v=G.createRadialGradient(960,540,520,960,540,1250); v.addColorStop(0,'rgba(224,104,40,0)'); v.addColorStop(1,'rgba(224,104,40,0.07)'); G.fillStyle=v; G.fillRect(0,0,1920,1080);
+}
+
+// ════════════════════════════ helpers ════════════════════════════
+function put(e,x,y,s=1,op=1,extra=''){ if(op<0.002){ e.style.display='none'; return; } e.style.display=''; e.style.opacity=fx(op); e.style.transform=`translate(${fx(x)}px,${fx(y)}px) scale(${s.toFixed(4)})${extra}`; }
+const buzz=(t,t0,amp)=>{ const u=t-t0; return u<0||u>0.8?0:amp*Math.sin(2*Math.PI*26*u)*Math.exp(-5*u); };
+function show(e,on){ e.style.display=on?'':'none'; }
+const slideIn=(t,t0,d=0.42)=>ease.expoOut(seg(t,t0,t0+d));
+function cardXf(t){ const p=OM.popIn(t,T.CARD_IN,{zeta:0.7,omega:15,rise:110,s0:0.88,ds:0.12}); return {x:CARD.x+CARD.w*(1-p.s)/2, y:CARD.y+p.dy+CARD.h*(1-p.s)/2, s:p.s, op:t<T.CARD_IN?0:p.op}; }
+const segW=(t,j,q)=>{ const c=cardXf(t); return {x:c.x+(40+q*170+85)*c.s, y:c.y+(RK_TOP+j*RK_H+89)*c.s}; };
+function drawFinger(o,F,t){ const f=F.find(f=>t>=f.a&&t<=f.b); if(!f){ o.finger.style.display='none'; return; }
+  const v=sstep(f.a,f.a+0.18,t)*(1-sstep(f.b-0.22,f.b,t)), p=spline(f.path,t); let s=1;
+  for(const g of f.G){ const end=g.t2||g.t+0.12; if(t>=g.t&&t<end) s=0.82; }
+  o.finger.style.display=v<0.01?'none':''; o.finger.style.opacity=fx(v); o.finger.style.transform=`translate(${fx(p[0])}px,${fx(p[1])}px) scale(${s})`; }
+function drawRipple(o,F,t){ let last=null; for(const f of F) for(const g of f.G) if(!g.t2&&t>=g.t&&(!last||g.t>last.t)) last=g;
+  const ra=last?seg(t,last.t,last.t+0.38):1; if(ra>=1){ o.rip.style.display='none'; return; }
+  o.rip.style.display=''; o.rip.style.opacity=fx(1-ra); o.rip.style.transform=`translate(${fx(last.x)}px,${fx(last.y)}px) scale(${fx(lerp(1,7,ease.cubicOut(ra)))})`; }
+
+// the train only runs while the voting is on screen, so the holds stay dead still
+const trainEnv=t=>sstep(6.6,7.4,t)*(1-sstep(12.0,12.8,t));
+const TRAIN=(()=>{ const n=DUR*240+2, a=new Float64Array(n); for(let i=1;i<n;i++) a[i]=a[i-1]+trainEnv(i/240)/240; return a; })();
+const trainTau=t=>{ const f=clamp(t*240,0,TRAIN.length-1), i=Math.floor(f), j=Math.min(TRAIN.length-1,i+1); return lerp(TRAIN[i],TRAIN[j],f-i); };
+function capVis(t){ const ci=OM.popIn(t,CAPS[0].t-0.05,{rise:24}); return (t<CAPS[0].t-0.05?0:ci.op)*(1-ssstep(CAP_OUT+0.1,CAP_OUT+0.45,t)); }
+function shifted(M){ return M; }   // every shot stays centred; the cards live in the side space
+// ════════════════════════════ seek ════════════════════════════
+let CAM, VIEW, TRACK={}, BLEED=0, CAPVIS=0;
+function seek(t){
+  CAM=camAt(t); VIEW=shifted(OM.view(CAM),t,CAM);
+  const dim=sstep(T.FOLD0,T.FOLD1,t); ground(t,VIEW,dim);
+  $('world').style.transform=`matrix(${VIEW.map(v=>v.toFixed(5)).join(',')})`;
+  TRACK={};
+  const gone=1-sstep(T.FOLD0,T.FOLD0+0.5,t);
+
+  // ── scenes: props and the in-world tag step back as the camera closes in; the name moves to the corner ──
+  const near=sstep(1.35,1.75,CAM.zoom), tagOut=sstep(1.2,1.45,CAM.zoom);
+  { let W=0, rgb=[0,0,0], ws=0; PEOPLE.forEach((P,k)=>{ const d=Math.hypot(CAM.x-P.x,CAM.y-P.y), w=1-sstep(260,700,d); if(w>0){ const c=hex(SCENES[P.scene].bg); rgb=rgb.map((v,i)=>v+c[i]*w); ws+=w; W=Math.max(W,w); } });
+    const op=W*sstep(0.8,1.06,CAM.zoom)*(1-sstep(T.FOLD0,T.FOLD0+0.4,t)), b=$('bleed'); BLEED=op;
+    if(op<0.005||!ws) b.style.display='none'; else { b.style.display=''; b.style.background=`rgb(${rgb.map(v=>Math.round(v/ws)).join(',')})`; b.style.opacity=fx(op); } }
+  let focus=-1; PEOPLE.forEach((P,k)=>{ const o=tileO(k); if(CAM.x>o.x&&CAM.x<o.x+1000&&CAM.y>o.y&&CAM.y<o.y+1000) focus=k; });
+  { const w=$('who'); const op=focus<0?0:sstep(1.35,1.6,CAM.zoom)*(1-sstep(T.FOLD0,T.FOLD0+0.3,t));
+    if(op<0.01) w.style.display='none'; else { const P=PEOPLE[focus]; const html=plate(P,focus);
+      if(w._k!==focus){ w.innerHTML=html; w._k=focus; } w.style.display=''; w.style.opacity=fx(op); w.style.transform=`translateY(${fx((1-op)*-12)}px)`; } }
+  const atHub=(1-sstep(260,700,Math.hypot(CAM.x-HUB.x,CAM.y-HUB.y)))*sstep(0.8,1.06,CAM.zoom);   // the middle of the map keeps a clean ground
+  tiles.forEach((T_,k)=>{ const top=gone*(1-atHub); T_.el.style.opacity=fx(top); show(T_.el,top>0.002); T_.el.style.boxShadow=`0 40px 80px -40px rgba(26,12,4,${fx(0.35*(1-BLEED))})`; T_.props.style.opacity=fx(1-near); { const o=tileO(k), sc=1+0.6*(1-sstep(0.45,0.9,CAM.zoom)); T_.tag.style.transform=`translate(${o.x+8}px,${o.y-20-72}px) scale(${fx(sc)})`; }
+    show(T_.tag,false);
+    if(T_.skyNear){ const tau=trainTau(t), n=((tau*150)%700), f=((tau*45)%700); T_.skyNear.setAttribute('transform',`translate(${fx(-n)},0)`); T_.skyFar.setAttribute('transform',`translate(${fx(-f)},0)`);
+      T_.straps.forEach((s,i)=>{ const x=[90,250,420,560][i]; s.setAttribute('transform',`rotate(${fx(5*trainEnv(t)*Math.sin(t*2.2+i*0.9))} ${x} 72)`); }); } });
+
+  // ── phones ──
+  phones.forEach((o,k)=>{
+    const O=phoneO(k), bz=buzz(t,k===0?T.DING:T.NOTIFY+0.55+k*0.15,k===0?2.4:0.9); put(o.el,O.x,O.y,PS,gone*(1-atHub),` translate(187.5px,406px) rotate(${fx(bz)}deg) translate(-187.5px,-406px)`);
+    if(k!==HOST){
+      const ir=OM.iris(t,T.IRIS+k*0.3,T.IRIS+k*0.3+0.5,187,52,{W:375,H:812,curve:ease.expoOut});
+      o.vote.style.clipPath=`circle(${fx(ir.r)}px at 187px 52px)`; show(o.vote,ir.r>0.5);
+    } else {
+      show(o.off,false);
+      const op=OM.iris(t,T.OPEN,T.OPEN+0.45,ICON.x,ICON.y,{W:375,H:812,curve:ease.expoOut});
+      show(o.home,!op.covered);
+      const sv=slideIn(t,T.HOSTVOTE), sf=slideIn(t,T.FINAL), sa=slideIn(t,T.AISCR);
+      show(o.create,op.r>0.5&&sv<1); o.create.style.clipPath=op.covered?'none':`circle(${fx(op.r)}px at ${ICON.x}px ${ICON.y}px)`;
+      o.create.style.transform=`translateX(${fx(-110*sv)}px)`;
+      show(o.vote,sv>0&&sf<1); o.vote.style.transform=`translateX(${fx(375*(1-sv)-110*sf)}px)`;
+      show(o.fin,sf>0&&sa<1); o.fin.style.transform=`translateX(${fx(375*(1-sf)-110*sa)}px)`;
+      show(o.ai,sa>0); o.ai.style.transform=`translateX(${fx(375*(1-sa))}px)`;
+      $('jicon').style.transform=`scale(${fx(OM.press(t,T.ICON,{depth:0.12}).s)})`;
+    }
+    SLOTS.forEach((S,r)=>{ const tt=TAPS[k].tap[r], st=t>=tt?PEOPLE[k].v[r]:null;
+      ['A','I','U'].forEach(s=>{ const b=o.btn[r][s], on=st===s; b.style.background=on?VCOL[s]:'#fff'; b.style.borderColor=on?VCOL[s]:'var(--border-strong)';
+        b.innerHTML=SVG[s](on?'#fff':'#9B8870'); b.style.transform=`scale(${fx(on?OM.press(t,tt,{depth:0.3,decay:9,omega:26}).s:1)})`; }); });
+    const sp=OM.press(t,TAPS[k].sub,{depth:0.08}), done=t>=TAPS[k].sub;
+    o.sub.style.background=done?'var(--success)':'var(--primary)'; o.sub.textContent=done?'已送出 ✓':'送出'; o.sub.style.transform=`scale(${fx(sp.s)})`;
+    const t0=k===0?T.DING:T.NOTIFY+0.55+k*0.15, bn=OM.popIn(t,t0,{zeta:0.62,omega:16,rise:-150,s0:0.94,ds:0.06});
+    if(t<t0) o.banner.style.display='none'; else { o.banner.style.display=''; o.banner.style.opacity=fx(bn.op); o.banner.style.transform=`translateY(${fx(52+bn.dy)}px) scale(${bn.s.toFixed(3)})`; }
+    drawFinger(o,FING[k],t); drawRipple(o,FING[k],t);
+    if(k===0||k===HOST) TRACK['phone'+k]={x:O.x,y:O.y,w:PW,h:PH};
+  });
+
+  // ── the idea ──
+  { const b1=OM.popIn(t,T.BUB1,{zeta:0.55,omega:16,rise:30,s0:0.7,ds:0.3}), b2=OM.popIn(t,T.BUB2,{zeta:0.5,omega:18,rise:30,s0:0.6,ds:0.4});
+    const away=sstep(1.62,1.86,t), dimb1=sstep(T.BUB2,T.BUB2+0.3,t);
+    const bx=PEOPLE[HOST].x-150-30, by=PEOPLE[HOST].y-PH/2;          // bubbles hang off the phone's upper-left
+    const w1=WID.b1, w2=WID.b2;
+    put(bub1,bx-w1,by+40-b1.dy-dimb1*110,b1.s*(1-0.08*dimb1),(t<T.BUB1?0:b1.op)*(1-0.45*dimb1)*(1-away));
+    put(bub2,bx-w2+20,by+170-b2.dy,b2.s,(t<T.BUB2?0:b2.op)*(1-away));
+    const bc={x:bx-w2+20+48, y:by+170+48};
+    rays.forEach((r,i)=>{ const a=-Math.PI*0.5+(i-2)*0.55, k=seg(t,T.BUB2+0.05,T.BUB2+0.5), d=60+50*ease.cubicOut(k);
+      if(t<T.BUB2+0.05||k>=1) { r.style.display='none'; return; }
+      r.style.display=''; r.style.opacity=fx(1-k); r.style.transform=`translate(${fx(bc.x+Math.cos(a)*d-4)}px,${fx(bc.y+Math.sin(a)*d-26)}px) rotate(${fx(a+Math.PI/2)}rad)`; });
+    if(t<1.86) TRACK.idea={x:bx-w2,y:by+40,w:w2,h:226};
+  }
+
+  // ── create: title, then two drags ──
+  { const ty=OM.typeOn(t,T.TYPE0,TITLE,{cps:T.CPS});
+    $('fld').innerHTML=ty.n?`${ty.str}${t<T.DRAGS[0].t-0.3&&ty.caret?'<i></i>':''}`:`<span class="ph">例如：週末聚餐</span>${t>T.TITLE_TAP?'<i></i>':''}`;
+    let n=0; dcEls.forEach((e,i)=>{ const on=DATE_ON[i]!=null&&t>=DATE_ON[i]; e.classList.toggle('on',on); if(on) n++;
+      e.style.transform=`scale(${fx(on?OM.press(t,DATE_ON[i],{depth:0.3}).s:1)})`; });
+    const tr=$('trail'); let D=T.DRAGS.find(D=>t>=D.t&&t<D.t2+0.35);
+    if(!D) tr.style.display='none'; else { const a=DATEC(D.r,D.c0), b=DATEC(D.r,D.c1), u=clamp((t-D.t)/(D.t2-D.t)), x2=lerp(a.x,b.x,u);
+      tr.style.display=''; tr.style.left=(a.x-26)+'px'; tr.style.top=a.y+'px'; tr.style.width=fx(x2-a.x+52)+'px'; tr.style.opacity=fx(1-sstep(D.t2,D.t2+0.35,t)); }
+    const c7=$('cnt7'), lastOn=Math.max(-1,...Object.values(DATE_ON).filter(v=>t>=v)), pc=lastOn>0?OM.press(t,lastOn,{depth:0.1}).s:1;
+    c7.textContent=n?`已選 ${n} 天`:'還沒選日期'; c7.style.transform=`scale(${fx(pc)})`; c7.style.opacity=n?1:0.6;
+    const g=$('gobtn'), p=OM.press(t,T.GO,{depth:0.1}); g.style.background=n?'var(--primary)':'#F2B99A'; g.style.transform=`scale(${fx(p.s)})`; g.style.opacity=t>=T.PILL0?0:1; }
+
+  // ── the link ──
+  { const B0=pw(HOST,14,712), A={x:B0.x,y:B0.y,w:347*PS,h:66*PS}, B={x:PILL_TOP.x-235,y:PILL_TOP.y-42,w:470,h:84};
+    if(t>=T.PILL0&&t<T.ROUTE0+0.05){ const m=OM.morphRect(t,T.PILL0,T.PILL1,A,B,{curve:ease.expoOut}), im=OM.impact(t,T.PILL1,{decay:8,omega:20,sqx:0.06,sqy:0.08});
+      put(pill,m.cx-235,m.cy-42,1,1); pill.style.transform+=` scale(${(m.w/470*im.sx).toFixed(4)},${(m.h/84*im.sy).toFixed(4)})`;
+      pill.querySelector('.tx').style.opacity=fx(sstep(0.35,0.9,m.k)); TRACK.pill={x:m.x,y:m.y,w:m.w,h:m.h};
+    } else pill.style.display='none';
+    pillc.forEach((e,k)=>{ const a=T.ROUTE0+k*0.3, b=T.ROUTE1+k*0.3; if(t<T.ROUTE0||t>b+0.35){ e.style.display='none'; return; }
+      const u=ease.cubicInOut(seg(t,a,b)), p=qpt(LINK_R[k],u), s=lerp(1,0.62,u); put(e,p.x-235,p.y-42,s,1-sstep(b+0.02,b+0.3,t));
+      if(k===0) TRACK.pills={x:p.x-235*s,y:p.y-42*s,w:470*s,h:84*s}; });
+  }
+
+  // ── ranking ──
+  { const c=cardXf(t), card=$('card'), out=t<T.CHIP0?0:ssstep(T.CHIP0,T.CHIP0+0.4,t);
+    if(t<T.CARD_IN||out>=1) card.style.display='none'; else { put(card,c.x+CARD.w*c.s*out*0.04,c.y+out*40,c.s*(1-out*0.08),c.op*(1-out)); TRACK.card={x:c.x,y:c.y,w:CARD.w*c.s,h:CARD.h*c.s}; }
+    const landed={}; let full=0;
+    DOTS.forEach(D=>{ const tl=D.t0+DOT_D, on=t>=tl; landed[D.j+D.s]=(landed[D.j+D.s]||0)+(on?1:0); D.seg.style.transform=`scaleX(${(on?spring(t-tl,0.55,22):0).toFixed(4)})`; });
+    PEOPLE.forEach((P,k)=>{ if(t>=LAUNCH(k,2)+DOT_D) full++; });
+    rkEls.forEach((e,j)=>['A','I','U'].forEach(s=>e.querySelector('.c'+s).textContent=landed[j+s]||0));
+    $('cnt').textContent=`${full}/4 人已回覆`;
+    const b=$('best'), bw=OM.popIn(t,T.BEST+0.08,{zeta:0.55,omega:20,rise:10,s0:0.6,ds:0.4}); b.style.opacity=t<T.BEST+0.08?0:fx(bw.op); b.style.transform=`translateY(${fx(bw.dy)}px) scale(${bw.s.toFixed(3)})`;
+    // the ring sits under the rows inside the card, so the 「最多人可以」 tag stays on top
+    const gl=$('glow'), gk=t<T.BEST?0:spring(t-T.BEST,0.6,18);
+    if(gk<=0) gl.style.display='none'; else { const pad=lerp(28,8,gk); gl.style.display=''; gl.style.width=fx(720+2*pad)+'px'; gl.style.height=fx(118+2*pad)+'px';
+      gl.style.transform=`translate(${fx(20-pad)}px,${fx(RK_TOP-pad)}px)`; gl.style.opacity=fx(Math.min(1,gk*1.4)); }
+  }
+  DOTS.forEach(D=>{ const e=D.el, t1=D.t0+DOT_D; if(t<D.t0||t>=t1+0.12){ e.style.display='none'; return; }
+    const from=pw(D.k,btnC(D.r,D.s).x,btnC(D.r,D.s).y), to=segW(t,D.j,D.q);
+    const g=OM.gather(t,D.t0,t1,0,1,from,to,{stagger:0,arc:160+D.k*30,curve:ease.cubicInOut}), land=seg(t,t1,t1+0.12);
+    put(e,g.x,g.y,(0.85+0.3*Math.sin(Math.PI*g.k))*(1-land),1-land); if(D.k===0&&D.r===0) TRACK.dots={x:g.x-29,y:g.y-29,w:58,h:58}; });
+
+  // ── the slot returns to 阿傑 ──
+  { const ch=$('chip'), c=cardXf(T.CHIP0), A={x:c.x+20*c.s,y:c.y+RK_TOP*c.s,w:720*c.s,h:118*c.s,r:22}, F=pw(HOST,14,150), B={x:F.x,y:F.y,w:347*PS,h:190*PS,r:18*PS};
+    if(t<T.CHIP0||t>=T.CHIP1+0.06) ch.style.display='none'; else { const m=OM.morphRect(t,T.CHIP0,T.CHIP1,A,B,{curve:ease.cubicInOut}), f=1-sstep(T.CHIP1-0.12,T.CHIP1+0.05,t);
+      ch.style.display=''; ch.style.width=fx(m.w)+'px'; ch.style.height=fx(m.h)+'px'; ch.style.borderRadius=fx(m.r)+'px'; ch.style.opacity=fx(f);
+      ch.style.transform=`translate(${fx(m.x)}px,${fx(m.y-Math.sin(m.k*Math.PI)*120)}px)`; ch.querySelector('.c').style.transform=`scale(${fx(lerp(1,0.8,m.k))})`; TRACK.chip={x:m.x,y:m.y,w:m.w,h:m.h}; }
+    const fc=$('finc'), im=OM.impact(t,T.CHIP1,{decay:8,omega:22,sqx:0.04,sqy:0.05}); fc.style.opacity=fx(sstep(T.CHIP1-0.14,T.CHIP1+0.02,t)); fc.style.transform=`scale(${fx(im.sx)},${fx(im.sy)})`;
+    const ab=OM.popIn(t,T.AIIN,{zeta:0.5,omega:16,rise:40,s0:0.7,ds:0.3}), ap=OM.press(t,T.AIBTN,{depth:0.08}), aib=$('aib');
+    { const g=seg(t,T.GLINT,T.GLINT+0.55); $('glint').style.transform=`translateX(${fx(-120+g*480)}px)`; $('glint').style.opacity=g>0&&g<1?1:0;
+      const hp=t<T.GLINT?0:(0.5-0.5*Math.cos((t-T.GLINT)*Math.PI*2/0.8)), ho=t>=T.AIBTN?1-seg(t,T.AIBTN,T.AIBTN+0.2):1; $('halo').style.opacity=fx(hp*ho*0.9); $('halo').style.transform=`scale(${fx(1+0.04*hp)})`; }
+    aib.style.opacity=t<T.AIIN?0:fx(ab.op); aib.style.transform=`translateY(${fx(ab.dy)}px) scale(${fx(ab.s*ap.s)})`; }
+
+  // ── AI ──
+  { const pref=$('pref'), th=$('think'), res=$('res'), toThink=ssstep(T.THINK,T.THINK+0.3,t), toRes=ssstep(T.RESULTS,T.RESULTS+0.25,t);
+    show(pref,toThink<1); pref.style.opacity=fx(1-toThink); pref.style.transform=`translateY(${fx(-30*toThink)}px)`;
+    show(th,toThink>0&&toRes<1); th.style.opacity=fx(toThink*(1-toRes));
+    $('spk').style.transform=`rotate(${fx((t-T.THINK)*220)}deg) scale(${fx(0.9+0.12*Math.sin((t-T.THINK)*9))})`;
+    skEls.forEach((s,i)=>{ const x=((t-T.THINK)*1.6+i*0.18)%1; s.querySelector('i').style.transform=`translateX(${fx(-180+x*527)}px)`; });
+    show(res,toRes>0);
+    const PICKS=['朋友','400-600','可久坐'];
+    Object.entries(chipEls).forEach(([c,e])=>{ const i=PICKS.indexOf(c), on=c==='3-4 人'||(i>=0&&t>=T.CHIPS[i]); e.classList.toggle('on',on);
+      let s=i>=0&&on?OM.press(t,T.CHIPS[i],{depth:0.22}).s:1; if(c==='3-4 人') s*=1+0.1*OM.ring(t-T.AUTO,7,22); e.style.transform=`scale(${fx(s)})`; });
+    $('startbtn').style.transform=`scale(${fx(OM.press(t,T.START,{depth:0.08}).s)})`;
+    rcEls.forEach((e,i)=>{ const w=OM.popIn(t,T.RESULTS+0.1+i*0.12,{zeta:0.62,omega:17,rise:60,s0:0.92,ds:0.08}), sel=i===0&&t>=T.PICK, lift=i===0?seg(t,T.FIN0-0.02,T.FIN0+0.05):0;
+      let op=t<T.RESULTS+0.1+i*0.12?0:w.op*(1-lift); if(i>0) op*=1-0.6*sstep(T.PICK,T.PICK+0.3,t);
+      e.style.opacity=fx(op); e.classList.toggle('sel',sel); e.style.transform=`translateY(${fx(w.dy)}px) scale(${fx(w.s*(sel?OM.press(t,T.PICK,{depth:0.06}).s:1))})`;
+      if(i===0){ const ok=e.querySelector('.ok'); ok.style.opacity=sel?1:0; ok.style.transform=`scale(${fx(sel?0.5+0.5*spring(t-T.PICK,0.5,22):0)})`; } }); }
+
+  // ── the decision: the chosen card flies to the middle and grows; on the downbeat it becomes a pin and goes out ──
+  { const fin=$('final'), pin=$('pin'), lab=$('pinlab'), ring=$('pinring');
+    const R0=pw(HOST,14,RC_TOP[0]), A={x:R0.x,y:R0.y,w:347*PS,h:146*PS,r:20*PS}, BIG={x:HUB.x-380,y:HUB.y-260,w:760,h:520,r:34}, P={x:HUB.x-70,y:HUB.y-70,w:140,h:140,r:70};
+    if(t>=T.FIN0&&t<T.PIN0+0.02){ const m=OM.morphRect(t,T.FIN0,T.FIN1,A,BIG,{curve:ease.cubicInOut}), im=OM.impact(t,T.FIN1,{decay:7,omega:18,sqx:0.04,sqy:0.05}), lift=Math.sin(m.k*Math.PI)*160;
+      fin.style.display=''; fin.style.width=fx(m.w)+'px'; fin.style.height=fx(m.h)+'px'; fin.style.borderRadius=fx(m.r)+'px';
+      fin.style.transform=`translate(${fx(m.x+m.w*(1-im.sx)/2)}px,${fx(m.y-lift+m.h*(1-im.sy)/2)}px) scale(${fx(im.sx)},${fx(im.sy)})`;
+      const sm=fin.querySelector('.sm'), bg=fin.querySelector('.bg'); sm.style.opacity=fx(1-sstep(0.1,0.45,m.k)); sm.style.transform=`scale(${(m.w/347).toFixed(4)})`;
+      bg.style.opacity=fx(sstep(0.45,0.85,m.k)); bg.style.transform=`scale(${Math.min(m.w/760,m.h/520).toFixed(4)})`;
+      TRACK.final={x:m.x,y:m.y-lift,w:m.w,h:m.h};
+    } else fin.style.display='none';
+    const draw=(b,face,cal,sx=1,sy=1,body='')=>{ pin.style.display=''; pin.style.width=fx(b.w)+'px'; pin.style.height=fx(b.h)+'px'; const bd=pin.querySelector('.body'); bd.style.borderRadius=fx(b.r)+'px'; bd.style.background=body;
+      pin.style.transform=`translate(${fx(b.x)}px,${fx(b.y)}px) scale(${fx(sx)},${fx(sy)})`; pin.querySelector('.face').style.opacity=fx(face); pin.querySelector('.cal').style.opacity=fx(cal); TRACK.pin={x:b.x,y:b.y,w:b.w,h:b.h}; };
+    if(t>=T.PIN0&&t<T.FOLD0){
+      if(t<T.PINLAND){ const m=OM.morphRect(t,T.PIN0,T.PINLAND,BIG,P,{curve:ease.expoOut}), c=sstep(0,0.5,m.k);
+        draw(m,sstep(0.45,1,m.k),0,1,1,`rgb(${Math.round(lerp(255,224,c))},${Math.round(lerp(255,104,c))},${Math.round(lerp(255,40,c))})`); }
+      else { const im=OM.impact(t,T.PINLAND,{decay:7,omega:20,sqx:0.12,sqy:0.15}); draw(P,1,0,im.sx,im.sy); }
+    } else if(t>=T.FOLD0){ const m=OM.morphRect(t,T.FOLD0,T.FOLD1,P,{x:1600,y:1065,w:150,h:150,r:38},{curve:ease.expoInOut}), im=OM.impact(t,T.FOLD1,{decay:7,omega:20,sqx:0.1,sqy:0.12});
+      draw(m,1-sstep(0,0.4,m.k),sstep(0.5,1,m.k),im.sx,im.sy);
+    } else pin.style.display='none';
+    const lb=OM.popIn(t,T.PINLAND+0.08,{zeta:0.55,omega:18,rise:-20,s0:0.6,ds:0.4}), lw=WID.lab;
+    if(t<T.PINLAND+0.08) lab.style.display='none'; else put(lab,HUB.x-lw/2,HUB.y+92+lb.dy,lb.s,lb.op*(1-sstep(T.FOLD0,T.FOLD0+0.3,t)));
+    const ra=seg(t,T.PINLAND,T.PINLAND+0.7); if(t<T.PINLAND||ra>=1) ring.style.display='none'; else put(ring,HUB.x,HUB.y,lerp(4,34,ease.cubicOut(ra)),(1-ra)*0.8); }
+
+  // ── 叮咚 on 小明's phone ──
+  { const out=1-sstep(27.7,28.0,t), bangs=[...$('ding').querySelectorAll('.bang')], tag=$('ding').querySelector('.dingtag');
+    const SPOT=[[420,40,-14],[455,150,10],[405,260,-6]];
+    bangs.forEach((b,i)=>{ const t0=T.DING+0.05+i*0.09, w=OM.popIn(t,t0,{zeta:0.45,omega:20,rise:30,s0:0.2,ds:0.8}), p=pw(0,SPOT[i][0],SPOT[i][1]);
+      if(t<t0||out<=0) b.style.display='none'; else put(b,p.x,p.y+w.dy,w.s,w.op*out,` rotate(${SPOT[i][2]}deg)`); });
+    const w=OM.popIn(t,T.DING,{zeta:0.5,omega:18,rise:24,s0:0.3,ds:0.7}), p=pw(0,-40,60);
+    tag.style.display='none'; }   // the three ! carry the moment on their own
+
+  // ── lockup ──
+  markL.forEach((s,i)=>{ const d=OM.letterDrop(t,T.MARK,i,{stagger:0.07,dist:60}); s.style.opacity=t<T.MARK?0:fx(d.op); s.style.transform=`translateY(${fx(d.y)}px) scale(${d.sx.toFixed(4)},${d.sy.toFixed(4)})`; });
+  taglS.forEach((s,i)=>{ const w=OM.wordRise(t,T.TAG+i*0.08,{dist:22}); s.style.opacity=t<T.TAG?0:fx(w.op); s.style.transform=`translateY(${fx(w.y)}px)`; });
+  taglI.forEach((e,i)=>e.style.opacity=fx(sstep(T.TAG+0.06+i*0.08,T.TAG+0.22+i*0.08,t)));
+  show($('mark'),t>=T.MARK); show($('tagl'),t>=T.TAG);
+  if(t>=T.MARK) TRACK.mark={x:1600,y:1055,w:1790+480-1600,h:170};
+
+  // ── caption ──
+  { const ci=OM.popIn(t,CAPS[0].t-0.05,{rise:24}), co=ssstep(CAP_OUT+0.1,CAP_OUT+0.45,t), cp=$('cap');
+    cp.style.display=(t<CAPS[0].t-0.05||co>=1)?'none':''; cp.style.opacity=fx(ci.op*(1-co)); cp.style.transform=`translateX(${fx(-(1-ci.k)*80-co*80)}px)`; CAPVIS=ci.op*(1-co); }
+  capEls.forEach((e,i)=>{ const c=CAPS[i], nx=CAPS[i+1], kin=spring(t-c.t,0.62,18), kout=nx?ssstep(nx.t-0.05,nx.t+0.25,t):0, vis=t>=c.t&&kout<1;
+    e.style.display=vis?'':'none'; e.style.transform=`translateY(${fx((1-kin)*180-kout*180)}px)`; e.style.opacity=fx(Math.min(1,kin*1.4)*(1-kout)); });
+
+  $('hud').textContent='t='+t.toFixed(3);
+  return Promise.resolve();
+}
+
+// ════════════════════════════ contract ════════════════════════════
+window.__seek=async t=>{ await seek(t); return true; };
+window.__track=t=>{ seek(t); const o={}; for(const [k,b] of Object.entries(TRACK)) o[k]=OM.projectBox(VIEW,b); return o; };
+window.__motion=(t0,t1)=>{ let d=OM.screenTravel(camAt(t0),camAt(t1),camAt((t0+t1)/2));
+  const a=window.__track(t0), b=window.__track(t1);
+  for(const k of Object.keys(a)){ if(!b[k]) continue; const p=a[k], q=b[k]; d=Math.max(d,Math.abs(p.x-q.x),Math.abs(p.y-q.y),Math.abs(p.x+p.w-q.x-q.w),Math.abs(p.y+p.h-q.y-q.h)); }
+  seek(t1); return d; };
+const WID={};
+window.__ready=document.fonts.ready.then(()=>{ [['b1',bub1],['b2',bub2],['lab',$('pinlab')],['ding',document.querySelector('.dingtag')]].forEach(([k,e])=>{ e.style.display=''; WID[k]=e.offsetWidth; }); return seek(0); });
+const q=new URLSearchParams(location.search);
+if(q.has('t')) __ready.then(()=>seek(parseFloat(q.get('t'))));
+if(q.has('hud')) $('hud').style.display='block';
+if(q.has('play')) __ready.then(()=>{const t0=performance.now();(function loop(){seek(((performance.now()-t0)/1000)%DUR);requestAnimationFrame(loop);})();});
+</script>
+</body>
+</html>

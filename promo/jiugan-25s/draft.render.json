@@ -1,0 +1,39 @@
+{
+ "comp": "/Users/merano/Desktop/\u66fc\u9640\u6703\u8b70/\u63ea\u5718prototype/promo/jiugan-25s/comp.html",
+ "fps": 30,
+ "scale": 1,
+ "size": [
+  1920,
+  1080
+ ],
+ "shutter": 180.0,
+ "samples": "adaptive",
+ "gap_px": 10.0,
+ "samples_per_moving_frame": {
+  "4": 519,
+  "5": 20,
+  "6": 10,
+  "7": 11,
+  "8": 9,
+  "9": 10,
+  "10": 8,
+  "12": 4,
+  "13": 2,
+  "14": 2,
+  "15": 4,
+  "16": 1,
+  "17": 1,
+  "19": 1,
+  "21": 1,
+  "22": 1,
+  "24": 1,
+  "46": 2
+ },
+ "workers": 8,
+ "frames": 750,
+ "still_frames": 143,
+ "cut_frames": 47,
+ "captures": 3214,
+ "seconds": 126.0,
+ "final": false
+}
