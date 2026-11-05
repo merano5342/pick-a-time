@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+- Node: **v22+ required by Wrangler** — `.nvmrc` pins 24, run `nvm use` first
 - Install deps: `npm install` (CI uses `bun install --frozen-lockfile` — `bun.lock` is the lockfile of record, keep it in sync even if you use npm locally)
 - Dev server: `npm run dev` (Vite + `@cloudflare/vite-plugin`: runs the SPA and the Worker with a local D1 on one origin). First time: `cp .dev.vars.example .dev.vars && npm run db:migrate:local`
 - Build: `npm run build` (outputs to `dist/`)

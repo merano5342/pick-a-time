@@ -1,5 +1,5 @@
 {
-  "name": "jiuganxin",
+  "name": "pick-a-time",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite build && vite preview",
     "deploy": "vite build && wrangler deploy",
-    "db:migrate:local": "wrangler d1 migrations apply jiuganxin-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply jiuganxin-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply pick-a-time-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply pick-a-time-db --remote",
     "cf-typegen": "wrangler types",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit && tsc --noEmit -p worker/tsconfig.json"

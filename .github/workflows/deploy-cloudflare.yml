@@ -18,11 +18,14 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bunx tsc --noEmit && bunx tsc --noEmit -p worker/tsconfig.json
       - run: bunx vite build
-      - run: bunx wrangler d1 migrations apply jiuganxin-db --remote
+      - run: bunx wrangler d1 migrations apply pick-a-time-db --remote
       - run: bunx wrangler deploy

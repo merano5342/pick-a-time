@@ -17,6 +17,7 @@
 ### 本機開發
 
 ```bash
+nvm use                          # 需要 Node 22 以上（.nvmrc 指定 24）
 npm install
 cp .dev.vars.example .dev.vars   # 不填 Google 金鑰時，登入按鈕會用本機測試帳號
 npm run db:migrate:local

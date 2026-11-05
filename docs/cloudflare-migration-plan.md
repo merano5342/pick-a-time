@@ -29,8 +29,9 @@ Email 通知、Perplexity 串接、假日排程、留言分頁 API 接到 UI、�
 
 ## 上線步驟（需要你操作的部分）
 
+0. 終端機先執行 `nvm use`（Wrangler 需要 Node 22 以上，專案用 `.nvmrc` 指定 24）
 1. 註冊 Cloudflare 帳號，`npx wrangler login`
-2. `npx wrangler d1 create jiuganxin-db`，把回傳的 `database_id` 填進 `wrangler.jsonc`
+2. `npx wrangler d1 create pick-a-time-db`，把回傳的 `database_id` 填進 `wrangler.jsonc`
 3. `npm run db:migrate:remote`
 4. Google Cloud Console 建立 OAuth Client（Web application），授權重新導向 URI 填 `https://<你的 worker 網址>/api/auth/google/callback`（本機另加 `http://localhost:5173/api/auth/google/callback`）
 5. `npx wrangler secret put GOOGLE_CLIENT_ID`、`npx wrangler secret put GOOGLE_CLIENT_SECRET`
