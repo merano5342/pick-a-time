@@ -18,6 +18,7 @@ interface MobileAppProps {
   isHost: boolean;
   initialTab: "vote" | "heatmap" | null;
   isLoading: boolean;
+  isAuthReady: boolean;
   pageError: string | null;
   onGoHome: () => void;
   onCreateEvent: (input: CreateEventInput) => Promise<void>;
@@ -52,6 +53,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({
   isHost,
   initialTab,
   isLoading,
+  isAuthReady,
   pageError,
   onGoHome,
   onCreateEvent,
@@ -96,7 +98,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({
           position: "relative",
         }}
       >
-        {isLoading && !eventData && (
+        {((isLoading && currentEventId && !eventData) || (!isAuthReady && !currentEventId)) && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "var(--color-muted)" }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>正在載入活動內容...</div>
           </div>
@@ -115,7 +117,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({
           </div>
         )}
 
-        {!isLoading && !pageError && !currentEventId && (
+        {/* Not gated on isLoading — see App.tsx: a failed create must not wipe the wizard. */}
+        {!pageError && !currentEventId && isAuthReady && (
           !user ? (
             <LoginScreen onLogin={onLogin} />
           ) : homeView === "create" ? (

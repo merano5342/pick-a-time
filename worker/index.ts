@@ -25,7 +25,11 @@ app.get("/hosts/me/events", listHostEvents);
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 
 app.onError((err, c) => {
-  if (err instanceof HttpError) return c.json({ error: err.message }, err.status);
+  if (err instanceof HttpError) {
+    // Visible in Cloudflare Workers Logs, so rejected requests can be diagnosed.
+    console.warn(`[${err.status}] ${c.req.method} ${c.req.path}: ${err.message}`);
+    return c.json({ error: err.message }, err.status);
+  }
   console.error(err);
   return c.json({ error: "伺服器發生錯誤，請稍後再試" }, 500);
 });

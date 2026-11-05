@@ -131,7 +131,7 @@ export const CreateEvent: React.FC<CreateEventProps> = ({ onSubmit, isLoading, h
   const activeSlots = slots.filter((s) => s.date === activeDate).sort((a, b) => a.time.localeCompare(b.time));
   const datesMissingSlots = selectedDates.filter((d) => !slots.some((s) => s.date === d));
 
-  const canSubmit = !!title.trim() && !!responseDeadline && selectedDates.length > 0 && datesMissingSlots.length === 0;
+  const canSubmit = !!title.trim() && !!hostName.trim() && !!responseDeadline && selectedDates.length > 0 && datesMissingSlots.length === 0;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -176,7 +176,7 @@ export const CreateEvent: React.FC<CreateEventProps> = ({ onSubmit, isLoading, h
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 12 }}>
-                <Input label="主揪暱稱" placeholder="例如：阿傑、Wally" value={hostName} onChange={(e) => setHostName(e.target.value)} />
+                <Input label="主揪暱稱" required maxLength={40} placeholder="例如：阿傑、Wally" value={hostName} onChange={(e) => setHostName(e.target.value)} />
                 <Input label="主揪 Email" type="email" value={hostEmail} disabled hint="使用登入的 Google 帳號，不可修改" />
               </div>
               <Input

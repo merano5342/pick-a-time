@@ -147,7 +147,7 @@ export const CreateWizard: React.FC<CreateWizardProps> = ({ onSubmit, isLoading,
 
   const canNext =
     step === 0
-      ? !!title.trim() && !!responseDeadline
+      ? !!title.trim() && !!hostName.trim() && !!responseDeadline
       : step === 1
       ? selectedDates.length > 0 && datesMissingSlots.length === 0
       : true;
@@ -261,6 +261,8 @@ export const CreateWizard: React.FC<CreateWizardProps> = ({ onSubmit, isLoading,
 
               <Input
                 label={infoLabel("主揪暱稱", "hostName")}
+                required
+                maxLength={40}
                 placeholder="例如：阿傑、Wally"
                 value={hostName}
                 onChange={(e) => setHostName(e.target.value)}

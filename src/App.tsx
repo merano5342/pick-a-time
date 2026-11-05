@@ -306,7 +306,8 @@ export default function App() {
         currentHostToken={effectiveHostToken}
         isHost={isHost}
         initialTab={initialTab}
-        isLoading={isLoading || (!isAuthReady && !currentEventId)}
+        isLoading={isLoading}
+        isAuthReady={isAuthReady}
         pageError={pageError}
         onGoHome={handleGoHome}
         onCreateEvent={handleCreateEvent}
@@ -355,7 +356,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main style={{ flex: 1 }}>
-        {isLoading && !eventData && (
+        {((isLoading && currentEventId && !eventData) || (!isAuthReady && !currentEventId)) && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 12, color: "var(--color-muted)" }}>
             <RefreshCw size={28} className="animate-spin" style={{ color: "var(--color-primary)" }} />
             <p style={{ fontSize: 13, fontWeight: 700 }}>正在載入活動內容...</p>
@@ -378,7 +379,9 @@ export default function App() {
           </div>
         )}
 
-        {!isLoading && !pageError && !currentEventId && isAuthReady && (
+        {/* Not gated on isLoading: creating an event sets isLoading, and unmounting
+            the form here would wipe everything typed if the request fails. */}
+        {!pageError && !currentEventId && isAuthReady && (
           !user ? (
             <LoginScreen onLogin={login} />
           ) : homeView === "create" ? (
