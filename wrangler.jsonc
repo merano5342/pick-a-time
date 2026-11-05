@@ -1,20 +1,30 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "pick-a-time",
-  "main": "worker/index.ts",
-  "compatibility_date": "2026-10-01",
-  "assets": {
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "pick-a-time-db",
-      // Replace with the id printed by `npx wrangler d1 create pick-a-time-db` before deploying.
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "observability": { "enabled": true }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "pick-a-time",
+	"main": "worker/index.ts",
+	"compatibility_date": "2026-10-01",
+	"assets": {
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "pick-a-time-db",
+			// Replace with the id printed by `npx wrangler d1 create pick-a-time-db` before deploying.
+			"database_id": "9df733de-0740-4381-b082-a8dd698ed99c",
+			"migrations_dir": "migrations"
+		},
+		{
+			"binding": "pick_a_time_db",
+			"database_name": "pick-a-time-db",
+			"database_id": "9df733de-0740-4381-b082-a8dd698ed99c",
+			"remote": true
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
 }
