@@ -7,7 +7,7 @@ import { getLifecycleStatusFromSnapshot, categorizeForHostTabs, HostListTab } fr
 import { DEMO_EVENTS, getDemoEventBadge } from "../lib/demoEvents";
 import { Badge, Button } from "../design-system/components";
 import { cardStyle, SectionLabel } from "./mobileStyles";
-import { FakeUser } from "../lib/fakeAuth";
+import { AuthUser as FakeUser } from "../lib/auth";
 
 interface HostHomeProps {
   user: FakeUser;

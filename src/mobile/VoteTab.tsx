@@ -7,6 +7,7 @@ import { formatSlotTime } from "../lib/slots";
 import { Button, Input } from "../design-system/components";
 import { cardStyle, MonthNavButton, countInAdjacentMonth, quickBtnStyle, STATUS_META } from "./mobileStyles";
 import { EventInfoCard } from "./EventInfoCard";
+import { verifyParticipant } from "../lib/api";
 
 interface VoteTabProps {
   event: EventData;
@@ -144,21 +145,30 @@ export const VoteTab: React.FC<VoteTabProps> = ({ event, nickname, setNickname, 
     setLoginError("");
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const cleanLoginNickname = loginNickname.trim();
-    if (!cleanLoginNickname || !loginPassword.trim()) {
+    const cleanLoginPassword = loginPassword.trim();
+    if (!cleanLoginNickname || !cleanLoginPassword) {
       setLoginError("請輸入暱稱與手機末三碼");
       return;
     }
-    const matched = event.responses.find((r) => r.nickname.toLowerCase() === cleanLoginNickname.toLowerCase());
-    if (!matched || matched.password !== loginPassword.trim()) {
-      setLoginError("暱稱或手機末三碼不正確");
+    let verified: { participantId: string; email: string };
+    try {
+      // Checked on the server — the stored 手機末三碼 is never sent to the browser.
+      verified = await verifyParticipant(event.id, cleanLoginNickname, cleanLoginPassword);
+    } catch (err: any) {
+      setLoginError(err?.message || "暱稱或手機末三碼不正確");
+      return;
+    }
+    const matched = event.responses.find((r) => r.id === verified.participantId);
+    if (!matched) {
+      setLoginError("找不到原有的投票紀錄，請重新整理頁面");
       return;
     }
     setEditingParticipantId(matched.id);
     setNickname(matched.nickname);
-    setEmail(matched.email || "");
-    setPassword(matched.password || "");
+    setEmail(verified.email || "");
+    setPassword(cleanLoginPassword);
     setComment(matched.comment || "");
     setAvailability(matched.availability || {});
     setLoginError("");

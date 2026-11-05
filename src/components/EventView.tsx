@@ -13,7 +13,7 @@ import { EventInfoCard } from "../mobile/EventInfoCard";
 
 interface EventViewProps {
   event: EventData;
-  hostToken?: string;
+  isHost: boolean;
   initialTab?: "vote" | "heatmap";
   onRespond: (input: SubmitResponseInput) => Promise<void>;
   onFinalize: (finalSlotId: string, finalNote?: string) => Promise<void>;
@@ -28,7 +28,7 @@ interface EventViewProps {
 
 export const EventView: React.FC<EventViewProps> = ({
   event,
-  hostToken,
+  isHost,
   initialTab,
   onRespond,
   onFinalize,
@@ -40,7 +40,6 @@ export const EventView: React.FC<EventViewProps> = ({
   onCopySuccess,
   isLoading,
 }) => {
-  const isHost = Boolean(hostToken && hostToken === event.hostToken);
   const [nickname, setNickname] = useState(() => getUserNickname());
   const [email, setEmail] = useState(() => getUserEmail());
 

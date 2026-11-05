@@ -9,7 +9,7 @@ import { GoogleLoginOverlay } from "./components/GoogleLoginOverlay";
 import { Toast } from "./components/Toast";
 import { MobileApp } from "./mobile/MobileApp";
 import { useViewport } from "./lib/useViewport";
-import { useFakeAuth } from "./lib/fakeAuth";
+import { useAuth } from "./lib/auth";
 import {
   EventData,
   CreateEventInput,
@@ -30,7 +30,8 @@ import {
   saveAiSelectedRestaurant,
   submitComment,
   getHostToken,
-  getVisitedEvents,
+  fetchHistory,
+  isDemoEventId,
   VisitedEventItem
 } from "./lib/api";
 import { RefreshCw, AlertTriangle } from "lucide-react";
@@ -50,13 +51,16 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [historyList, setHistoryList] = useState<VisitedEventItem[]>([]);
-  const { user, isAuthenticating, login, logout } = useFakeAuth();
+  const { user, isReady: isAuthReady, isAuthenticating, login, logout } = useAuth();
   const [homeView, setHomeView] = useState<"dashboard" | "create">("dashboard");
-  // Host identity is only honored while "logged in" — logging out strips
-  // host-only UI everywhere immediately, even on an event page already open,
-  // without touching the stored per-event hostToken (logging back in
-  // restores it).
-  const effectiveHostToken = user ? currentHostToken : null;
+  // Host identity is only honored while logged in. Real events: the server
+  // decides (eventData.isHost, from the Google session). Demo events: the
+  // browser-local demo hostToken decides, so both perspectives can be shown.
+  const isDemoEvent = Boolean(currentEventId && isDemoEventId(currentEventId));
+  const effectiveHostToken = user && isDemoEvent ? currentHostToken : null;
+  const isHost = Boolean(
+    user && eventData && (isDemoEvent ? effectiveHostToken && effectiveHostToken === eventData.hostToken : eventData.isHost),
+  );
 
   // Tracks an eventId whose data was just set directly in state (e.g. right
   // after creation), so the hashchange this triggers doesn't re-fetch it.
@@ -90,9 +94,9 @@ export default function App() {
     setIsLoading(true);
     setPageError(null);
     try {
-      // Priority: tokenParam -> LocalStorage token
-      const storedToken = getHostToken(id);
-      const effectiveToken = tokenParam || storedToken || undefined;
+      // Demo events only: tokenParam -> LocalStorage token. Real events ignore
+      // any token — the session cookie identifies the host.
+      const effectiveToken = isDemoEventId(id) ? tokenParam || getHostToken(id) || undefined : undefined;
 
       const data = await fetchEvent(id, effectiveToken);
       setEventData(data);
@@ -140,23 +144,43 @@ export default function App() {
   // HostDashboard/HostHome need this list without the user opening the modal.
   useEffect(() => {
     if (isHistoryOpen || (!currentEventId && user)) {
-      setHistoryList(getVisitedEvents());
+      let cancelled = false;
+      fetchHistory(Boolean(user)).then((list) => {
+        if (!cancelled) setHistoryList(list);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
   }, [isHistoryOpen, currentEventId, user]);
+
+  // Keep the tally fresh while an event page is open (FR-4 輪詢). Silent:
+  // failures are ignored and the loading state isn't touched.
+  useEffect(() => {
+    if (!currentEventId || isDemoEventId(currentEventId)) return;
+    const id = currentEventId;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      fetchEvent(id)
+        .then((data) => setEventData((prev) => (prev && prev.id === id ? data : prev)))
+        .catch(() => {});
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [currentEventId]);
 
   // Handlers
   const handleCreateEvent = async (input: CreateEventInput) => {
     setIsLoading(true);
     try {
-      const result = await createEvent(input);
-      setEventData(result.event);
-      setCurrentEventId(result.event.id);
-      setCurrentHostToken(result.hostToken);
+      const created = await createEvent(input);
+      setEventData(created);
+      setCurrentEventId(created.id);
+      setCurrentHostToken(null);
 
       // Update URL hash without full reload. We already have the event data
       // in state, so tell the hashchange listener to skip its redundant fetch.
-      skipNextHashLoadRef.current = result.event.id;
-      window.location.hash = `event=${result.event.id}&hostToken=${result.hostToken}`;
+      skipNextHashLoadRef.current = created.id;
+      window.location.hash = `event=${created.id}`;
 
       addToast("success", "活動成功建立！專屬連結已產生");
       setIsShareModalOpen(true);
@@ -183,11 +207,11 @@ export default function App() {
   };
 
   const handleFinalize = async (finalSlotId: string, finalNote?: string) => {
-    if (!currentEventId || !currentHostToken) return;
+    if (!currentEventId || !isHost) return;
     setIsLoading(true);
     try {
       const updated = await finalizeEvent(currentEventId, {
-        hostToken: currentHostToken,
+        hostToken: currentHostToken || undefined,
         finalSlotId,
         finalNote,
       });
@@ -201,10 +225,10 @@ export default function App() {
   };
 
   const handleReopen = async (newDeadline?: string) => {
-    if (!currentEventId || !currentHostToken) return;
+    if (!currentEventId || !isHost) return;
     setIsLoading(true);
     try {
-      const updated = await reopenEvent(currentEventId, currentHostToken, newDeadline);
+      const updated = await reopenEvent(currentEventId, currentHostToken || undefined, newDeadline);
       setEventData(updated);
       addToast("info", "活動已重新開放投票統計");
     } catch (err: any) {
@@ -215,10 +239,10 @@ export default function App() {
   };
 
   const handleCancelEvent = async () => {
-    if (!currentEventId || !currentHostToken) return;
+    if (!currentEventId || !isHost) return;
     setIsLoading(true);
     try {
-      const updated = await cancelEvent(currentEventId, currentHostToken);
+      const updated = await cancelEvent(currentEventId, currentHostToken || undefined);
       setEventData(updated);
       addToast("info", "活動已取消");
     } catch (err: any) {
@@ -229,10 +253,10 @@ export default function App() {
   };
 
   const handleUpdateEvent = async (input: Omit<UpdateEventInput, "hostToken">) => {
-    if (!currentEventId || !currentHostToken) return;
+    if (!currentEventId || !isHost) return;
     setIsLoading(true);
     try {
-      const updated = await updateEvent(currentEventId, { hostToken: currentHostToken, ...input });
+      const updated = await updateEvent(currentEventId, { hostToken: currentHostToken || undefined, ...input });
       setEventData(updated);
       addToast("success", "活動資訊已更新");
     } catch (err: any) {
@@ -279,9 +303,10 @@ export default function App() {
       <MobileApp
         currentEventId={currentEventId}
         eventData={eventData}
-        currentHostToken={currentHostToken}
+        currentHostToken={effectiveHostToken}
+        isHost={isHost}
         initialTab={initialTab}
-        isLoading={isLoading}
+        isLoading={isLoading || (!isAuthReady && !currentEventId)}
         pageError={pageError}
         onGoHome={handleGoHome}
         onCreateEvent={handleCreateEvent}
@@ -353,7 +378,7 @@ export default function App() {
           </div>
         )}
 
-        {!isLoading && !pageError && !currentEventId && (
+        {!isLoading && !pageError && !currentEventId && isAuthReady && (
           !user ? (
             <LoginScreen onLogin={login} />
           ) : homeView === "create" ? (
@@ -373,7 +398,7 @@ export default function App() {
         {!pageError && currentEventId && eventData && (
           <EventView
             event={eventData}
-            hostToken={effectiveHostToken || undefined}
+            isHost={isHost}
             initialTab={initialTab || undefined}
             onRespond={handleRespond}
             onFinalize={handleFinalize}

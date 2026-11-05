@@ -44,7 +44,10 @@ export interface AiSelectedRestaurant {
 
 export interface EventData {
   id: string;
-  hostToken: string; // Secret key generated for creator
+  /** Only on browser-local demo events (demo-*); real events identify the host by Google login. */
+  hostToken?: string;
+  /** Set by the server: whether the signed-in viewer is this event's host. */
+  isHost?: boolean;
   title: string;
   description?: string;
   location?: EventLocation;
@@ -85,7 +88,7 @@ export interface SubmitResponseInput {
 }
 
 export interface FinalizeEventInput {
-  hostToken: string;
+  hostToken?: string;
   finalSlotId: string;
   finalNote?: string;
 }
@@ -96,11 +99,11 @@ export interface SubmitCommentInput {
 }
 
 export interface CancelEventInput {
-  hostToken: string;
+  hostToken?: string;
 }
 
 export interface UpdateEventInput {
-  hostToken: string;
+  hostToken?: string;
   title?: string;
   description?: string;
   location?: EventLocation;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import { Avatar } from "../design-system/components";
-import { FakeUser } from "../lib/fakeAuth";
+import { AuthUser as FakeUser } from "../lib/auth";
 
 interface UserMenuProps {
   user: FakeUser;

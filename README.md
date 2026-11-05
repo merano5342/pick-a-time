@@ -8,11 +8,20 @@
 
 ## 專案定位（重要）
 
-本專案是**純靜態頁面 Demo**，用途是展示給工程師看整體流程與介面設計，**不是要串接真實後端或第三方服務的正式產品**。
+本版本是**可實際運行的版本**：前端 SPA 與後端 API 一起部署在單一 Cloudflare Worker，資料存在 Cloudflare D1。完整計劃與上線步驟見 [docs/cloudflare-migration-plan.md](docs/cloudflare-migration-plan.md)。
 
-- **Google OAuth / 登入是假畫面**：規格書中提到的「主揪 Google SSO 登入」在此 Demo 中僅以前端模擬的方式呈現登入流程與 UI 狀態（例如假的登入按鈕、假的頭像、假的登出選單），**不會真的呼叫 Google OAuth API**，純粹是為了讓看 Demo 的人能理解「這裡未來會是登入情境」並在介面上模擬操作行為。
-- 同理，AI 推薦餐廳等功能若規格書提及串接 Google Places / Perplexity / LLM，在此 Demo 階段也可能先以假資料（mock）呈現流程，不代表已完成真實串接。
-- 修改此專案 UI 時，請維持「純前端、可直接跑在 GitHub Pages」的靜態架構，不要為了做假登入而加入真正的後端驗證邏輯。
+- **主揪登入是真的 Google OAuth**：伺服器端完成授權並以 HttpOnly session cookie 辨識主揪；參與者仍免登入。
+- **尚未串接**：Email 通知、AI 選餐廳（Perplexity）、台灣假日同步——AI 推薦目前仍是 demo 資料。
+- **Demo 情境**（`demo-*` 活動）只存在瀏覽器 localStorage，不會寫入資料庫。
+
+### 本機開發
+
+```bash
+npm install
+cp .dev.vars.example .dev.vars   # 不填 Google 金鑰時，登入按鈕會用本機測試帳號
+npm run db:migrate:local
+npm run dev
+```
 
 ## 功能特色
 

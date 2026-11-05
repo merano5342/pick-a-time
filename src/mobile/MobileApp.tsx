@@ -9,12 +9,13 @@ import { Toast } from "./Toast";
 import { LoginScreen } from "./LoginScreen";
 import { HostHome } from "./HostHome";
 import { GoogleLoginOverlay } from "./GoogleLoginOverlay";
-import { FakeUser } from "../lib/fakeAuth";
+import { AuthUser as FakeUser } from "../lib/auth";
 
 interface MobileAppProps {
   currentEventId: string | null;
   eventData: EventData | null;
   currentHostToken: string | null;
+  isHost: boolean;
   initialTab: "vote" | "heatmap" | null;
   isLoading: boolean;
   pageError: string | null;
@@ -48,6 +49,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({
   currentEventId,
   eventData,
   currentHostToken,
+  isHost,
   initialTab,
   isLoading,
   pageError,
@@ -76,11 +78,9 @@ export const MobileApp: React.FC<MobileAppProps> = ({
   homeView,
   onOpenCreate,
 }) => {
-  // Host identity is only honored while "logged in" — logging out strips
-  // host-only UI immediately even on an event page already open, without
-  // touching the stored per-event hostToken (logging back in restores it).
+  // App.tsx resolves isHost (server session for real events, demo token for
+  // demo-* events); currentHostToken is only ever set for demo events.
   const effectiveHostToken = user ? currentHostToken : null;
-  const isHost = Boolean(eventData && effectiveHostToken && effectiveHostToken === eventData.hostToken);
 
   return (
     <div style={{ height: "100dvh", overflow: "hidden", overscrollBehavior: "none", display: "flex", justifyContent: "center", background: "#EAE0CC", fontFamily: "var(--font-body)" }}>

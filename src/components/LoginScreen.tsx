@@ -31,7 +31,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         建立活動與管理「我揪的團」需要先登入。團員收到活動連結後不需要登入即可投票。
       </p>
       <p style={{ fontSize: 11, color: "var(--color-muted)", opacity: 0.75, marginBottom: 24 }}>
-        （Demo 展示用，僅模擬登入畫面，不會真的呼叫 Google）
+        我們只會取得你的 Google 名稱與 Email，用來辨識主揪身分。
       </p>
       <Button variant="primary" size="lg" icon={<LogIn size={18} />} onClick={onLogin}>
         使用 Google 帳號登入

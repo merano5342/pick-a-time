@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# Leave the Google values empty to use the local test-host login instead.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+ALLOW_DEV_LOGIN=true

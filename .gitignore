@@ -10,3 +10,7 @@ coverage/
 # Pixabay music (moodmode · Commercial Fun): never publish the track on its own — only inside the edited film
 promo/*/music/
 promo/*/mix.wav
+
+# Cloudflare local state / secrets
+.wrangler/
+.dev.vars
